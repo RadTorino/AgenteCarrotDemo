@@ -1,0 +1,28 @@
+{
+	"name": "Python 3",
+
+	"dockerFile": "../Dockerfile",
+
+	"mounts": [
+		//"source=${localWorkspaceFolder}/...localpath ,target=...container_path,type=bind,consistency=cached"
+	],
+
+	"containerEnv": {
+		"DEMO": "demo"
+	},
+	
+	"remoteUser": "root",
+
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-toolsai.jupyter",
+				"ms-python.python"
+			]
+		},
+		"settings": {
+			"python.defaultInterpreterPath": "/usr/local/bin/python3",
+			"jupyter.notebookFileRoot": "/workspace"
+		}
+	}
+}
