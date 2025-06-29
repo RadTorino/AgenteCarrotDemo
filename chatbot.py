@@ -1,8 +1,17 @@
 import streamlit as st
 import asyncio
-from uuid import uuid4
+import json
+from src.utils.config import config
+from src.modules.assistant import assistant_tooled
 
-from src.modules.assistant import process_chat
+# Configuración para leer la tabla de productos
+PRODUCTS_SHEET_ID = config["products_sheet_id"]
+PRODUCTS_WORKSHEET_NAME = config["products_worksheet_name"]
+
+def cargar_productos():
+    from src.modules.gspread_conexion import leer_google_sheet  # Ajustá la ruta real
+    productos = leer_google_sheet(PRODUCTS_SHEET_ID, PRODUCTS_WORKSHEET_NAME)
+    return productos
 
 # Inicializar sesión
 if "thread_id" not in st.session_state:
@@ -10,6 +19,9 @@ if "thread_id" not in st.session_state:
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
+
+if "productos" not in st.session_state:
+    st.session_state.productos = cargar_productos()
 
 st.title("Chat demo")
 
@@ -22,16 +34,22 @@ for msg in st.session_state.messages:
 user_input = st.chat_input("Escribí algo...")
 
 if user_input:
-    # Mostrar mensaje del usuario en pantalla y guardar
+    # Mostrar mensaje del usuario y guardar en historial
     st.chat_message("user").markdown(user_input)
     st.session_state.messages.append({"role": "user", "content": user_input})
 
     # Procesar respuesta
     with st.spinner("Pensando..."):
-        result = asyncio.run(process_chat(user_input, st.session_state.thread_id))
-        st.session_state.thread_id = result["thread_id"]
-        respuesta = result["answer"]
+        productos_json = json.dumps(st.session_state.productos, ensure_ascii=False)
 
-    # Mostrar respuesta del bot y guardar
-    st.chat_message("assistant").markdown(respuesta)
-    st.session_state.messages.append({"role": "assistant", "content": respuesta})
+        respuesta, new_thread_id = asyncio.run(
+            assistant_tooled(
+                user_message=user_input,
+                products=productos_json if st.session_state.thread_id is None else None,
+                thread_id=st.session_state.thread_id
+            )
+        )
+
+        st.session_state.thread_id = new_thread_id
+        st.chat_message("assistant").markdown(respuesta)
+        st.session_state.messages.append({"role": "assistant", "content": respuesta})

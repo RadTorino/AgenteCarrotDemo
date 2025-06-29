@@ -1,68 +1,159 @@
 from src.modules.groq_client import GroqClient
 from uuid import uuid4
+from src.modules.openai_client import OpenAIService
+from src.modules.gspread_conexion import (
+    insertar_cliente,
+    insertar_pedido,
+    leer_google_sheet)
+from src.utils.config import config
+import asyncio, json
+from fastapi import HTTPException
+import os
+from dotenv import load_dotenv
+load_dotenv()
+ASSISTANT_ID= os.getenv("ASSISTANT_ID")
 
-system_message = """Sos un asistente virtual de Carrot, una dietética que vende productos saludables al por mayor. Tu tarea es asistir a nuevos y actuales clientes con sus pedidos y consultas, de forma clara y cordial.
 
-Podés atender dos tipos de situaciones:
+async def ejecutar_tools(run: dict):
+    results = []
+    for tool_call in run.required_action.submit_tool_outputs.tool_calls:
+        tool_call_id = tool_call.id
+        function_name = tool_call.function.name
+        arguments = json.loads(tool_call.function.arguments)
+        print(f"Ejecutando herramienta: {function_name} con argumentos: {arguments}")
+        try:
+            if function_name == "register_client":
+                print("Registrando nuevo cliente...")
+                nuevo_id = insertar_cliente(
+                    sheet_id=config["clientes_sheet_id"],
+                    worksheet_name=config["clientes_worksheet_name"],
+                    nombre_comercial=arguments["commercial_name"],
+                    cuit=arguments["cuit"],
+                    direccion=arguments["address"]
+                )
+                query_results = {"new_client_id": nuevo_id}
+                print(f"Nuevo cliente registrado con ID: {nuevo_id}")
 
-1. 🛒 **Realizar un pedido**
-   - Si el cliente es nuevo, pedile estos datos antes de tomar el pedido:
-     - Nombre comercial
-     - Razón social
-     - Condición de IVA o CUIT
-     - Dirección de entrega
-     - Transporte
-   - Si ya es cliente habitual, podés avanzar directamente con el pedido.
-   - Mostrá el catálogo si lo pide, y ayudalo a seleccionar cantidades.
-   - Aclarale que los precios son estimativos.
-   
-   Catálogo actual (precios simulados):
+            elif function_name == "create_purchase":
+                nuevo_id = insertar_pedido(
+                    sheet_id=config["compras_sheet_id"],
+                    worksheet_name=config["compras_worksheet_name"],
+                    user_id=arguments["user_id"],
+                    product_id=arguments["product_id"],
+                    quantity=arguments["quantity"]
+                )
+                query_results = {"new_purchase_id": nuevo_id}
+            
+            elif function_name == "get_client_orders":
+                compras = leer_google_sheet(
+                    sheet_id=config["compras_sheet_id"],
+                    worksheet_name=config["compras_worksheet_name"]
+                )
+                print(f"Compras obtenidas: {compras}")
+                compras_cliente = [c for c in compras if str(c.get("user_id"))== str(arguments["user_id"])]
+                query_results = {"orders": compras_cliente}
+            
+            elif function_name == "get_client":
+                clientes = leer_google_sheet(
+                    sheet_id=config["clientes_sheet_id"],
+                    worksheet_name=config["clientes_worksheet_name"]
+                )
+                cliente = next((c for c in clientes if str(c.get("cuit")) == str(arguments["cuit"])), None)
+                query_results = {"client": cliente} if cliente else {"error": "Cliente no encontrado."}
+            
+            else:
+                query_results = {"error": f"Tool '{function_name}' no reconocida."}
+        
+        except Exception as e:
+            print(f"Error al ejecutar la herramienta {function_name}: {e}")
+            query_results = {"error": f"No se pudo ejecutar la herramienta"}
+        
+        print(f"Resultados de la herramienta {function_name}: {query_results}")
+        results.append({
+            "tool_call_id": tool_call_id,
+            "output": str(query_results)
+        })
+    
+    return results
 
-   📦 LINEA CONVENCIONAL (4 meses – temperatura ambiente):
-   - cookies de avellana – $1.200 x bolsa
-   - polvorones cítricos – $1.150 x bolsa
-   - pepas de frutos rojos – $1.300 x bolsa
-   - cracker semillas (vegano) – $1.100 x bolsa
-   - granola proteica (vegano) – $1.400 x bolsa
 
-   🥶 PANES REFRIGERADOS (40 días heladera / 3 meses freezer):
-   - pan de sarraceno (vegano) – $1.800 c/u
-   - pan keto molde – $2.000 c/u
-   - pan keto redondos – $1.900 c/u
-   - pan keto cheese redondos – $2.100 c/u
 
-   🍪 COOKIES KETO (4 meses – temperatura ambiente):
-   - cookie choco keto – $1.600 x paquete
-   - cookie choco chip keto – $1.650 x paquete
-   - cookie citric-keto – $1.600 x paquete
-   - pepa keto dulce de leche – $1.700 x paquete
+async def assistant_tooled(user_message: str, products=None, thread_id:str=None,):
+    openai = OpenAIService()
+    assistant_id = ASSISTANT_ID
 
-2. 📦 **Consultar el estado de un pedido**
-   - Si el cliente consulta por un pedido, pedile el **ID del pedido**.
-   - Una vez que lo envíe, simulá una respuesta indicando que el pedido está confirmado y será despachado en el día.
-   - Asegurate de repetir el contenido del pedido como si lo conocieras, usando productos del catálogo.
-   - Ejemplo: “El pedido con ID `CARROT-1849` incluye 5 paquetes de cookie choco keto y 3 panes keto molde. Ya está preparado y será despachado hoy.”
+    if not thread_id:
+        print("Ningún thread_id provisto por el cliente, generando uno nuevo...")
 
-💬 Respondé siempre con un tono cordial, eficiente y sin vueltas. Si el cliente no entiende algo, explicalo con claridad, sin sobrecargar. Tu objetivo es facilitar la experiencia de compra o consulta sin fricción.
-"""
-chats = {}
+        thread = await openai.client.beta.threads.create(
+            messages=[
+                {
+                "role": "assistant",
+                "content": f"Los productos disponibles son: {products}" 
+                }
+        ]) 
+        thread_id=thread.id # Obtiene un nuevo thread_id y lo asigna para ser reutilizado.
 
-client = GroqClient()
-async def process_chat(user_message: str, thread_id: str | None):
-    if thread_id is not None:
-        if thread_id in chats:
-            old_messages = chats[thread_id]
-        else:
-            raise ValueError("Thread ID not found")
+        if thread_id:
+            print(f"Nuevo thread iniciado. ID: {thread_id}")
+
     else:
-        old_messages = None
+        thread_id=thread_id
+        print(f"El cliente proporciona thread_id, se utiliza. ID:{thread_id}")
+    
+    messages = await openai.client.beta.threads.messages.list( thread_id=thread_id)
 
-    print(f"system_message: {system_message}")
-    answer, messages = await client.process_text_to_text_response(user_message, system_message, old_messages)
 
-    if thread_id is None:
-        thread_id = str(uuid4())
+    if not user_message:
+        return None, thread_id
+    else:
+        message = await openai.client.beta.threads.messages.create(
+            thread_id=thread_id,
+                role="user",
+                content=user_message
+                )
+    # Se obtiene un id del mensaje para identificarlo
+    message_id=message.id
+    print(f"Mensaje del usuario:  agregado al thread.")
 
-    chats[thread_id] = messages
+    run = await openai.client.beta.threads.runs.create_and_poll(
+    thread_id=thread_id,
+    assistant_id=assistant_id,
+    )
+    
+    if run:
+        print("Se inicia la corrida del Asistente...")
+        print(run.status)
+        status = run.status
+    while status == 'requires_action':
+        print(run.status)
+        query_results = await ejecutar_tools(run)
+        
+        run = await openai.client.beta.threads.runs.submit_tool_outputs(
+                thread_id=thread_id,
+                run_id=run.id,
+                tool_outputs=query_results
+                    )
+        while True:
+            run = await openai.client.beta.threads.runs.retrieve(
+            thread_id=thread_id,
+            run_id=run.id
+            )
+            print(f"Estado de la corrida del asistente: {run.status}")
+            if run.status == "completed":
+                status = run.status
+                break
+            elif run.status == "queued":
+                await asyncio.sleep(1)
+            elif run.status == "requires_action":
+                break
+    if run.status == "failed":
+        print(f"Error en la corrida del asistente: {run.last_error.code} - {run.last_error.message}")
+        raise HTTPException(status_code=500, detail="La corrida del asistente falló.")
 
-    return {"answer": answer, "thread_id": thread_id}
+    messages = await openai.client.beta.threads.messages.list(thread_id=thread_id)
+    #answer_id = messages.data[0].id
+    answer = messages.data[0].content[0].text.value
+    print(f"Respuesta del asistente lista: {answer}")
+    
+    return (answer, thread_id)

@@ -1,3 +1,9 @@
 streamlit
 groq
 python-dotenv
+twilio
+fastapi
+python-multipart
+uvicorn
+gspread 
+google-auth

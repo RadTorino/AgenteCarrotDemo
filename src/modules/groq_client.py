@@ -21,7 +21,6 @@ class GroqClient:
     ):
         system_msg = system_message
 
-        print(f"system_message: {system_msg}")
         if old_messages is not None:
             print(f"Se continua conversación con último mensaje: {old_messages[-1]}.")
             messages = old_messages.copy()
