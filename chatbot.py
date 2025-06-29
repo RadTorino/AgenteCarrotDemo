@@ -11,6 +11,7 @@ PRODUCTS_WORKSHEET_NAME = config["products_worksheet_name"]
 def cargar_productos():
     from src.modules.gspread_conexion import leer_google_sheet  # Ajustá la ruta real
     productos = leer_google_sheet(PRODUCTS_SHEET_ID, PRODUCTS_WORKSHEET_NAME)
+    print(f"Productos cargados: {len(productos)}")
     return productos
 
 # Inicializar sesión

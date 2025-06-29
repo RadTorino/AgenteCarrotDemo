@@ -1,4 +1,6 @@
 import os
+import json
+import base64
 import gspread
 from google.oauth2.service_account import Credentials
 
@@ -6,10 +8,17 @@ SHEET_ID = "1ulA9lcflYyrA76GkUsGluOynjOD-dELM8qLjD92HhY8"
 
 def get_gspread_client():
     scopes = ["https://www.googleapis.com/auth/spreadsheets"]
-    credentials = Credentials.from_service_account_file("/workspaces/Chatbot_demo/dev/creds/carrot-gspread-account-key.json",
-        scopes=scopes
-    )
+
+    cred_base64 = os.getenv("GOOGLE_CREDENTIALS_BASE64").strip("'")
+    if not cred_base64:
+        raise ValueError("No se encontró GOOGLE_CREDENTIALS_BASE64 en el entorno.")
+
+    # Decodificar base64 y parsear como JSON
+    cred_json = json.loads(base64.b64decode(cred_base64).decode("utf-8"))
+
+    credentials = Credentials.from_service_account_info(cred_json, scopes=scopes)
     return gspread.authorize(credentials)
+
 
 def leer_google_sheet(sheet_id, worksheet_name):
     client = get_gspread_client()
