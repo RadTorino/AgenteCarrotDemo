@@ -24,7 +24,7 @@ if "messages" not in st.session_state:
 if "productos" not in st.session_state:
     st.session_state.productos = cargar_productos()
 
-st.title("Chat demo")
+st.title("🥕 Chatbot Carrot - Demo de pedidos mayoristas")
 
 # Mostrar historial completo
 for msg in st.session_state.messages:
