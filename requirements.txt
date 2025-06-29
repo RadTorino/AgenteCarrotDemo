@@ -7,4 +7,4 @@ python-multipart
 uvicorn
 gspread 
 google-auth
-openai
+opneai
