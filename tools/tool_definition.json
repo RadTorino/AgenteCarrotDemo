@@ -1,0 +1,140 @@
+[
+    {
+    "type": "function",
+  "name": "register_client",
+  "description": "Registra un nuevo cliente en la base de datos. El CUIT debe ser un string que contenga solo números, sin guiones ni espacios.",
+  "strict": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "cuit": {
+        "type": "string",
+        "description": "CUIT del cliente, solo números (ejemplo: '20304050607')."
+      },
+      "commercial_name": {
+        "type": "string",
+        "description": "Nombre comercial del cliente."
+      },
+      "address": {
+        "type": "string",
+        "description": "Dirección de entrega del cliente."
+      },
+      "phone_number": {
+        "type": "string",
+        "description": "Número de teléfono del cliente, que recibes como mensaje de desarrollador al inicio de la conversación (ejemplo: '1123456789')."
+      }
+    },
+    "required": [
+      "cuit",
+      "commercial_name",
+      "address",
+      "phone_number"
+    ],
+    "additionalProperties": false
+  }
+},
+{
+    "type": "function",
+  "name": "create_purchase",
+  "description": "Registra un nuevo pedido para un cliente. Esta acción inicia un pedido en estado pendiente.",
+  "strict": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "user_id": {
+        "type": "string",
+        "description": "El ID único del cliente. Se obtiene después de validar o registrar al cliente."
+      },
+      "products": {
+        "type": "array",
+        "description": "Una lista de productos para el pedido. Cada objeto debe incluir el ID del producto y la cantidad.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "product_id": {
+              "type": "string",
+              "description": "El ID del producto solicitado."
+            },
+            "quantity": {
+              "type": "integer",
+              "description": "La cantidad del producto solicitada."
+            }
+          },
+          "required": [
+            "product_id",
+            "quantity"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "user_id",
+      "products"
+    ],
+    "additionalProperties": false
+  }
+},
+{
+  "type": "function",
+  "name": "get_client_orders",
+  "description": "Devuelve el historial de compras previas de un cliente.",
+  "strict": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "user_id": {
+        "type": "integer",
+        "description": "Identificador único del cliente. Lo obtienes luego de validar al cliente a partir de su cuit"
+      }
+    },
+    "required": [
+      "user_id"
+    ],
+    "additionalProperties": false
+  }
+},
+{
+  "type": "function",
+  "name": "get_client",
+  "description": "Obtiene los datos de un cliente a partir de su CUIT.",
+  "strict": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "cuit": {
+        "type": "string",
+        "description": "CUIT del cliente (solo números, sin guiones)."
+      }
+    },
+    "additionalProperties": false,
+    "required": [
+      "cuit"
+    ]
+  }
+},
+{
+  "type": "function",
+  "name": "link_phone_to_client",
+  "description": "Vincula un número de teléfono a un cliente existente.",
+  "strict": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "user_id": {
+        "type": "string",
+        "description": "Identificador único del cliente."
+      },
+      "phone_number": {
+        "type": "string",
+        "description": "Número de teléfono a vincular al cliente."
+      }
+    },
+    "required": [
+      "user_id",
+      "phone_number"
+    ],
+    "additionalProperties": false
+  }
+}
+]
