@@ -58,6 +58,17 @@ async def required_query(tool_call:dict):
             )
             print(f"Compras obtenidas: {compras}")
             compras_cliente = [c for c in compras if str(c.get("user_id"))== str(arguments["user_id"])]
+            orders_detail = leer_google_sheet(
+                    sheet_id=config["compras_sheet_id"],
+                    worksheet_name="orders_detail")
+            for compra in compras_cliente:
+                compra_id = compra.get("id")
+                detalles = [
+                {k: v for k, v in d.items() if k not in ["id", "order_id"]}
+                for d in orders_detail
+                if str(d.get("order_id")) == str(compra_id)
+            ]
+                compra["details"] = detalles
             query_results = {"orders": compras_cliente}
         
         elif function_name == "get_client":

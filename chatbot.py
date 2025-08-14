@@ -44,7 +44,7 @@ if "user_information" not in st.session_state:
     st.session_state.user_information = {}
 
 if "client_number" not in st.session_state:
-    st.session_state.client_number = "1161777347"  
+    st.session_state.client_number = "1123912091"  
 
 def get_or_create_thread(client_number):
     """
