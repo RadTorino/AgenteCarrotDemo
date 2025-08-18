@@ -65,10 +65,11 @@ async def whatsapp_webhook(
 ):
     print(f"Mensaje recibido de {From}: {Body}")
 
-    thread_id = get_or_create_thread(From)
+    number = From.replace("+", "")
+    thread_id = get_or_create_thread(number)
     user_information = None
     if thread_id is None:
-        user_information = get_client_by_phone(From) 
+        user_information = get_client_by_phone(number) 
         if user_information:
             print(f"Información del usuario: {user_information}")
     
