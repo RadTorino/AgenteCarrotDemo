@@ -64,6 +64,7 @@ async def whatsapp_webhook(
     From: str = Form(...)
 ):
     print(f"Mensaje recibido de {From}: {Body}")
+    print(f"Conversaciones existentes: {conversations}")
 
     number = From.split("+")[1]
     thread_id = get_or_create_thread(number)
@@ -87,7 +88,7 @@ async def whatsapp_webhook(
 
         
         # Actualizar el estado de la conversación con el nuevo thread_id y la marca de tiempo
-        conversations[From] = {
+        conversations[number] = {
             "thread_id": thread_id,
             "last_activity": datetime.now()
         }
@@ -95,6 +96,7 @@ async def whatsapp_webhook(
     except Exception as e:
         print(f"Error procesando el mensaje: {e}")
         assistant_reply = "Lo siento, hubo un error procesando tu mensaje."
+        
 
     # Crear la respuesta Twilio (TwiML)
     twilio_resp = MessagingResponse()
