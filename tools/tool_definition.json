@@ -127,7 +127,7 @@
       },
       "phone_number": {
         "type": "string",
-        "description": "Número de teléfono a vincular al cliente. Este debe ser exactamente el mismo número que recibes como mensaje de desarrollador al inicio de la conversación (ejemplo: '+5491123456789')."
+        "description": "Número de teléfono a vincular al cliente. Este debe ser exactamente el mismo número que recibes como mensaje de desarrollador al inicio de la conversación (ejemplo: '+5491123456789'). IMPORTANTE, no elimines ningún dígito, ni el +54, ni el 9, ni el 11 ni tampoco agregues nada."
       }
     },
     "required": [

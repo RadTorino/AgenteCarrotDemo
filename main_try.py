@@ -83,7 +83,7 @@ async def whatsapp_webhook(
                 thread_id=thread_id,
                 system_message=system_message,
                 user_information= user_information,
-                client_phone=From
+                client_phone=number
             )
 
         

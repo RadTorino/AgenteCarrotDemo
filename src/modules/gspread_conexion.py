@@ -152,7 +152,7 @@ def get_client_by_phone(phone_number):
     phones = leer_google_sheet(sheet_id, worksheet_name)
     
     for fila in phones:
-        if str(fila.get("phone_number")) == str(phone_number):
+        if str(fila.get("phone_number")) in str(phone_number):
             user_id = fila.get("user_id")
             client_info = leer_google_sheet(sheet_id, "clients")
             for client in client_info:
