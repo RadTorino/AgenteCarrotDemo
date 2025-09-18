@@ -84,7 +84,7 @@
     "type": "object",
     "properties": {
       "user_id": {
-        "type": "integer",
+        "type": "string",
         "description": "Identificador único del cliente. Lo obtienes luego de validar al cliente a partir de su cuit"
       }
     },

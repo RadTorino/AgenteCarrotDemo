@@ -22,7 +22,8 @@ def leer_google_sheet(sheet_id, worksheet_name):
     client = get_gspread_client()
     sheet = client.open_by_key(sheet_id)
     worksheet = sheet.worksheet(worksheet_name)
-    data = worksheet.get_all_records()
+    headers = worksheet.row_values(1)
+    data = worksheet.get_all_records(expected_headers=headers)
     return data
 
 def add_phone_to_client(sheet_id, user_id, phone_number):
