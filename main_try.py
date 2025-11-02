@@ -74,6 +74,16 @@ async def whatsapp_webhook(
         if user_information:
             print(f"Información del usuario: {user_information}")
     
+    print(f"Conversaciones existentes: {conversations}")
+
+    number = From.split("+")[1]
+    thread_id = get_or_create_thread(number)
+    user_information = None
+    if thread_id is None:
+        user_information = get_client_by_phone(number) 
+        if user_information:
+            print(f"Información del usuario: {user_information}")
+    
 
     # Procesar la respuesta del asistente
     try:
@@ -93,9 +103,26 @@ async def whatsapp_webhook(
             "last_activity": datetime.now()
         }
         assistant_reply = respuesta
+        respuesta, thread_id = await responses_tooled(
+                user_message=Body,
+                products=productos_json if thread_id is None else None,
+                thread_id=thread_id,
+                system_message=system_message,
+                user_information= user_information,
+                client_phone=number
+            )
+
+        
+        # Actualizar el estado de la conversación con el nuevo thread_id y la marca de tiempo
+        conversations[number] = {
+            "thread_id": thread_id,
+            "last_activity": datetime.now()
+        }
+        assistant_reply = respuesta
     except Exception as e:
         print(f"Error procesando el mensaje: {e}")
         assistant_reply = "Lo siento, hubo un error procesando tu mensaje."
+        
         
 
     # Crear la respuesta Twilio (TwiML)
