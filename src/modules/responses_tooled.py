@@ -116,7 +116,7 @@ async def required_query(tool_call:dict, client_phone):
             print(f"Iniciando flujo de contacto tipo: {type_of_contact}")
 
             # Llama a la función de negocio (send_notification)
-            success = send_notification(NotificacionSchema(
+            success = await send_notification(NotificacionSchema(
                 type=type_of_contact,
                 data=data_payload,
                 user_id=user_id,  ))

@@ -104,99 +104,74 @@
   }
 },
 {
-  "type": "function",
-  "name": "contact_company",
-  "description": "Deriva consultas y datos de contacto a un responsable de Célula Cocina (nuevos clientes, proveedores, CVs, o consultas de clientes sobre pedidos, facturación y reclamos).",
-  "strict": true,
-  "parameters": {
-    "type": "object",
-    "properties": {
-      "type": {
-        "type": "string",
-        "description": "Define la naturaleza del contacto o consulta.",
-        "enum": [
-          "pedidos_pendientes",
-          "facturacion",
-          "reclamos",
-          "nuevo_cliente_mayorista",
-          "potencial_proveedor",
-          "potencial_empleado"
-        ]
-      },
-      "data": {
-        "type": "object",
-        "description": "Objeto con la información. Solo se deben poblar los campos relevantes al 'type' de contacto seleccionado.",
-        "properties": {
-          "cuit": {
-            "type": "string",
-            "description": "CUIT del potencial cliente (solo para 'nuevo_cliente_mayorista')."
-          },
-          "razon_social": {
-            "type": "string",
-            "description": "Razón Social del potencial cliente (solo para 'nuevo_cliente_mayorista')."
-          },
-          "direccion": {
-            "type": "string",
-            "description": "Dirección del potencial cliente (solo para 'nuevo_cliente_mayorista')."
-          },
-          "fecha_del_pedido": {
-            "type": "string",
-            "description": "ID o fecha del pedido sobre el que se consulta (solo para 'pedidos_pendientes')."
-          },
-          "url_del_archivo": {
-            "type": "string",
-            "description": "URL de la factura o archivo de pago (solo para 'facturacion')."
-          },
-          "info": {
-            "type": "string",
-            "description": "Descripción detallada del reclamo (solo para 'reclamos')."
-          },
-          "url_de_imagen": {
-            "type": "string",
-            "description": "URL de una imagen adjunta (opcional, solo para 'reclamos')."
-          },
-          "producto_servicio": {
-            "type": "string",
-            "description": "Descripción del producto o servicio ofrecido (solo para 'potencial_proveedor')."
-          },
-          "info_contacto": {
-            "type": "string",
-            "description": "Información de contacto del proveedor (email, teléfono) (solo para 'potencial_proveedor')."
-          },
-          "documento_presentacion": {
-            "type": "string",
-            "description": "URL a un documento de presentación (opcional, solo para 'potencial_proveedor')."
-          },
-          "url_al_cv": {
-            "type": "string",
-            "description": "URL donde se encuentra alojado el CV (solo para 'potencial_empleado')."
-          }
+    "type": "function",
+    "name": "contact_company",
+    "description": "Deriva consultas y datos de contacto a un responsable de Célula Cocina. Es crucial seleccionar el 'type' correcto.",
+    "strict": true,
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "La naturaleza de la consulta. Determina el propósito de los datos enviados.",
+          "enum": [
+            "pedidos_pendientes",
+            "facturacion",
+            "reclamos",
+            "nuevo_cliente_mayorista",
+            "potencial_proveedor",
+            "potencial_empleado"
+          ]
         },
-         "required": [ "cuit",
-          "razon_social",
-          "direccion",
-          "fecha_del_pedido",
-          "url_del_archivo",
-          "info",
-          "url_de_imagen",
-          "producto_servicio",
-          "info_contacto",
-          "documento_presentacion",
-          "url_al_cv" ],
-        "additionalProperties": false
+        "user_id": {
+          "type": "string",
+          "description": "ID del cliente registrado. Incluir solo si el cliente está identificado. De lo contrario, este campo no se debe enviar."
+        },
+        "data": {
+          "type": "object",
+          "description": "Objeto con toda la información detallada. El modelo debe rellenar todos los campos; aquellos no relevantes para el 'type' actual se deben enviar como un string vacío.",
+          "properties": {
+            "cuit": { "type": "string" },
+            "razon_social": { "type": "string" },
+            "direccion": { "type": "string" },
+            "localidad": { "type": "string" },
+            "fecha_del_pedido": { "type": "string" },
+            "url_del_archivo": { "type": "string", "description": "URL de un comprobante, CV o presentación." },
+            "info": { "type": "string", "description": "Descripción detallada para un reclamo." },
+            "url_de_imagen": { "type": "string", "description": "URL de una imagen para un reclamo." },
+            "producto_servicio": { "type": "string", "description": "Descripción de un producto/servicio ofrecido por un proveedor." },
+            "info_contacto": { "type": "string", "description": "Datos de contacto (email/tel) de un proveedor." },
+            "documento_presentacion": { "type": "string", "description": "URL a un documento de presentación de un proveedor." },
+            "url_al_cv": { "type": "string", "description": "URL del CV de un candidato." },
+            "numero_pedido": { "type": "string" },
+            "nombre_contacto": { "type": "string" },
+            "telefono_contacto": { "type": "string", "description": "Teléfono de contacto validado con el usuario." }
+          },
+          "additionalProperties": false,
+          "required": [
+            "cuit",
+            "razon_social",
+            "direccion",
+            "localidad",
+            "fecha_del_pedido",
+            "url_del_archivo",
+            "info",
+            "url_de_imagen",
+            "producto_servicio",
+            "info_contacto",
+            "documento_presentacion",
+            "url_al_cv",
+            "numero_pedido",
+            "nombre_contacto",
+            "telefono_contacto"
+          ]
+        }
       },
-      "user_id": {
-        "type": "string",
-        "description": "El ID del cliente registrado. Es obligatorio si el 'type' es 'pedidos_pendientes', 'facturacion' o 'reclamos'."
-      }
-    },
-    "required": [
-      "type",
-      "data",
-      "user_id"
-    ],
-    "additionalProperties": false
-  }
+      "required": [
+        "type",
+        "data"
+      ],
+      "additionalProperties": false
+    }
 }
-
 ]
