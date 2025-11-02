@@ -21,12 +21,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Descargar ngrok
-RUN wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-linux-amd64.zip \
-    && unzip ngrok-stable-linux-amd64.zip \
-    && mv ngrok /usr/local/bin/ngrok \
-    && rm ngrok-stable-linux-amd64.zip
+# RUN wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-linux-amd64.zip \
+#     && unzip ngrok-stable-linux-amd64.zip \
+#     && mv ngrok /usr/local/bin/ngrok \
+#     && rm ngrok-stable-linux-amd64.zip
 
 # Exponer el puerto donde correrá FastAPI
 EXPOSE 8080
 
-#ENTRYPOINT 
+CMD ["uvicorn", "main_try:app", "--host", "0.0.0.0", "--port", "8080"]

@@ -1,7 +1,4 @@
-### VaoVao Project Specific ### 
 
-
-### VaoVao Data template ###
 # Ignorar todo dentro de la carpeta dev/
 dev/*
 models/**
@@ -202,3 +199,5 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+audios_recibidos/*

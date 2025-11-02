@@ -12,3 +12,5 @@ config = {
     "products_sheet_id": SHEET_ID,
     "products_worksheet_name": "products",
 }
+
+conversations = {}

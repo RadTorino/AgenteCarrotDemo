@@ -1,0 +1,202 @@
+[
+{
+    "type": "function",
+  "name": "create_purchase",
+  "description": "Registra un nuevo pedido para un cliente. Esta acción inicia un pedido en estado pendiente.",
+  "strict": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "user_id": {
+        "type": "string",
+        "description": "El ID único del cliente. Se obtiene después de validar o registrar al cliente."
+      },
+      "products": {
+        "type": "array",
+        "description": "Una lista de productos para el pedido. Cada objeto debe incluir el ID del producto y la cantidad.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "product_id": {
+              "type": "string",
+              "description": "El ID del producto solicitado."
+            },
+            "quantity": {
+              "type": "integer",
+              "description": "La cantidad del producto solicitada."
+            }
+          },
+          "required": [
+            "product_id",
+            "quantity"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "user_id",
+      "products"
+    ],
+    "additionalProperties": false
+  }
+},
+{
+  "type": "function",
+  "name": "get_client_orders",
+  "description": "Devuelve el historial de compras previas de un cliente.",
+  "strict": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "user_id": {
+        "type": "string",
+        "description": "Identificador único del cliente. Lo obtienes luego de validar al cliente a partir de su cuit"
+      }
+    },
+    "required": [
+      "user_id"
+    ],
+    "additionalProperties": false
+  }
+},
+{
+  "type": "function",
+  "name": "get_client",
+  "description": "Obtiene los datos de un cliente a partir de su CUIT.",
+  "strict": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "cuit": {
+        "type": "string",
+        "description": "CUIT del cliente (solo números, sin guiones)."
+      }
+    },
+    "additionalProperties": false,
+    "required": [
+      "cuit"
+    ]
+  }
+},
+{
+  "type": "function",
+  "name": "link_phone_to_client",
+  "description": "Vincula un número de teléfono a un cliente existente.",
+  "strict": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "user_id": {
+        "type": "string",
+        "description": "Identificador único del cliente."
+      },
+      "phone_number": {
+        "type": "string",
+        "description": "Número de teléfono a vincular al cliente. Este debe ser exactamente el mismo número que recibes como mensaje de desarrollador al inicio de la conversación (ejemplo: '+5491123456789'). IMPORTANTE, no elimines ningún dígito, ni el +54, ni el 9, ni el 11 ni tampoco agregues nada."
+      }
+    },
+    "required": [
+      "user_id",
+      "phone_number"
+    ],
+    "additionalProperties": false
+  }
+},
+{
+  "type": "function",
+  "name": "contact_company",
+  "description": "Deriva consultas y datos de contacto a un responsable de Célula Cocina (nuevos clientes, proveedores, CVs, o consultas de clientes sobre pedidos, facturación y reclamos).",
+  "strict": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "type": {
+        "type": "string",
+        "description": "Define la naturaleza del contacto o consulta.",
+        "enum": [
+          "pedidos_pendientes",
+          "facturacion",
+          "reclamos",
+          "nuevo_cliente_mayorista",
+          "potencial_proveedor",
+          "potencial_empleado"
+        ]
+      },
+      "data": {
+        "type": "object",
+        "description": "Objeto con la información. Solo se deben poblar los campos relevantes al 'type' de contacto seleccionado.",
+        "properties": {
+          "cuit": {
+            "type": "string",
+            "description": "CUIT del potencial cliente (solo para 'nuevo_cliente_mayorista')."
+          },
+          "razon_social": {
+            "type": "string",
+            "description": "Razón Social del potencial cliente (solo para 'nuevo_cliente_mayorista')."
+          },
+          "direccion": {
+            "type": "string",
+            "description": "Dirección del potencial cliente (solo para 'nuevo_cliente_mayorista')."
+          },
+          "fecha_del_pedido": {
+            "type": "string",
+            "description": "ID o fecha del pedido sobre el que se consulta (solo para 'pedidos_pendientes')."
+          },
+          "url_del_archivo": {
+            "type": "string",
+            "description": "URL de la factura o archivo de pago (solo para 'facturacion')."
+          },
+          "info": {
+            "type": "string",
+            "description": "Descripción detallada del reclamo (solo para 'reclamos')."
+          },
+          "url_de_imagen": {
+            "type": "string",
+            "description": "URL de una imagen adjunta (opcional, solo para 'reclamos')."
+          },
+          "producto_servicio": {
+            "type": "string",
+            "description": "Descripción del producto o servicio ofrecido (solo para 'potencial_proveedor')."
+          },
+          "info_contacto": {
+            "type": "string",
+            "description": "Información de contacto del proveedor (email, teléfono) (solo para 'potencial_proveedor')."
+          },
+          "documento_presentacion": {
+            "type": "string",
+            "description": "URL a un documento de presentación (opcional, solo para 'potencial_proveedor')."
+          },
+          "url_al_cv": {
+            "type": "string",
+            "description": "URL donde se encuentra alojado el CV (solo para 'potencial_empleado')."
+          }
+        },
+         "required": [ "cuit",
+          "razon_social",
+          "direccion",
+          "fecha_del_pedido",
+          "url_del_archivo",
+          "info",
+          "url_de_imagen",
+          "producto_servicio",
+          "info_contacto",
+          "documento_presentacion",
+          "url_al_cv" ],
+        "additionalProperties": false
+      },
+      "user_id": {
+        "type": "string",
+        "description": "El ID del cliente registrado. Es obligatorio si el 'type' es 'pedidos_pendientes', 'facturacion' o 'reclamos'."
+      }
+    },
+    "required": [
+      "type",
+      "data",
+      "user_id"
+    ],
+    "additionalProperties": false
+  }
+}
+
+]

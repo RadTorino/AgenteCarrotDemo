@@ -3,7 +3,7 @@ from uuid import uuid4
 from src.modules.openai_client import OpenAIService
 from src.modules.gspread_conexion import (
     insertar_cliente,
-    insertar_pedido,
+    crear_pedido_completo,
     leer_google_sheet)
 from src.utils.config import config
 import asyncio, json
@@ -35,12 +35,10 @@ async def ejecutar_tools(run: dict):
                 print(f"Nuevo cliente registrado con ID: {nuevo_id}")
 
             elif function_name == "create_purchase":
-                nuevo_id = insertar_pedido(
+                nuevo_id = crear_pedido_completo(
                     sheet_id=config["compras_sheet_id"],
-                    worksheet_name=config["compras_worksheet_name"],
                     user_id=arguments["user_id"],
-                    product_id=arguments["product_id"],
-                    quantity=arguments["quantity"]
+                    products=arguments["products"]
                 )
                 query_results = {"new_purchase_id": nuevo_id}
             
