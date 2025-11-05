@@ -4,9 +4,9 @@ from fastapi import FastAPI, Request, HTTPException
 
 app = FastAPI()
 
-ACCESS_TOKEN = "EAATRx4YkN0gBP43dLyvuRrv2760GbMRJ2PnelzNFXEphZAa8cYNiKteh6DZAzo4oaiNMz4zsi2Inwofyv3syaZBhQZBG24yxrcW9qxZBDVpMSztUZBhOwx8s2avx1Q1dq2wEUcpN2ZA6YwODQdyCPCUgSpQjM0ZCfMw8cJUuPBPogQ1ZAIby8lFv1xbZBBwOoZA9nd7ZAtJESrSJVe6ebMTCVYQZBx8rOqoLDWCNg2Txtq4pWM6v40YY90ZANjrpCNb7Ou40Kr6s0RPFsZCyjy2Rc8ZBzOZBDYVZCL"
+ACCESS_TOKEN = os.getenv("WHATSAPP_ACCESS_TOKEN")
 AUDIO_FOLDER = "audios_recibidos"
-PHONE_NUMBER_ID = "801735439696882"
+PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
 API_VERSION = os.getenv("WHATSAPP_API_VERSION", "v24.0")
 os.makedirs(AUDIO_FOLDER, exist_ok=True)
 
@@ -33,10 +33,10 @@ async def download_media(media_id, filename):
     # 2. Descargar el archivo real
     media_resp = requests.get(media_url, headers=headers)
     if media_resp.status_code == 200:
-        filepath = os.path.join(AUDIO_FOLDER, filename)
-        with open(filepath, "wb") as f:
-            f.write(media_resp.content)
-        print(f"✅ Archivo guardado en {filepath}")
+        # filepath = os.path.join(AUDIO_FOLDER, filename)
+        # with open(filepath, "wb") as f:
+        #     f.write(media_resp.content)
+        # print(f"✅ Archivo guardado en {filepath}")
         return media_resp.content
     else:
         print(f"Error al descargar media: {media_resp.text}")

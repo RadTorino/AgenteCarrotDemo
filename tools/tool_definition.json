@@ -169,7 +169,8 @@
       },
       "required": [
         "type",
-        "data"
+        "data",
+        "user_id"
       ],
       "additionalProperties": false
     }

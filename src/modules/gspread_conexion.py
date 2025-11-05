@@ -111,6 +111,7 @@ def crear_pedido_completo(sheet_id, user_id, products, worksheet_pedidos_name="o
     pedido_id = str(uuid.uuid4())
     fecha_actual = datetime.now(tz_buenos_aires).strftime("%Y-%m-%d %H:%M:%S")
 
+
     # Paso 2: Insertar la fila principal en la hoja de Pedidos
     try:
         worksheet_pedidos = sheet.worksheet(worksheet_pedidos_name)
@@ -129,14 +130,20 @@ def crear_pedido_completo(sheet_id, user_id, products, worksheet_pedidos_name="o
     try:
         worksheet_items = sheet.worksheet(worksheet_items_name)
         filas_items = []
+        products_catalog = leer_google_sheet(sheet_id, "products")
         for item in products:
             item_id = str(uuid.uuid4())
+            unit_price = next((prod.get("unit_price") for prod in products_catalog if str(prod.get("id")) == str(item.get("product_id"))), 0)
+            if unit_price == 0:
+                print(f"Advertencia: No se encontró el producto con ID {item.get('product_id')} en el catálogo.")
             filas_items.append([
                 item_id,
                 pedido_id,
                 item.get("product_id"),
-                item.get("quantity")
+                item.get("quantity"),
+                unit_price
             ])
+            print(f"Preparando ítem para insertar: {filas_items[-1]}")
         if filas_items:
             worksheet_items.append_rows(filas_items, value_input_option="USER_ENTERED")
     except Exception as e:

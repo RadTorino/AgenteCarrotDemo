@@ -12,9 +12,9 @@ from src.modules.gspread_conexion import get_client_by_phone
 app = FastAPI()
 
 VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "abcd")
-APP_SECRET = "b8ca66b208a660b82fffd01e3c19e613"  
+APP_SECRET = os.getenv("APP_SECRET") 
 ACCESS_TOKEN = os.getenv("WHATSAPP_ACCESS_TOKEN")
-PHONE_NUMBER_ID = "801735439696882"
+PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
 API_VERSION = os.getenv("WHATSAPP_API_VERSION", "v24.0")
 
 agent = OpenAIService()
@@ -79,6 +79,36 @@ async def receive_webhook(request: Request):
                     continue
             else:
                 await send_text_message(to=from_number, message="No pude descargar tu audio.")
+                continue
+
+        elif msg_type == "image":
+            media_id = msg.get("image", {}).get("id")
+            mime_type = msg.get("image", {}).get("mime_type")
+            caption = msg.get("image", {}).get("caption", "")
+            print(f"🖼️ Imagen recibida: {media_id} ({mime_type})")
+
+            image_bytes = await download_media(media_id, f"{media_id}.jpg")
+
+            if image_bytes:
+                print(f"✅ Imagen descargada con éxito. Caption: {caption}")
+                user_message = f"Imagen recibida con caption: {caption}" if caption else "Imagen recibida."
+            else:
+                await send_text_message(to=from_number, message="No pude descargar tu imagen.")
+                continue
+
+        elif msg_type == "document":
+            media_id = msg.get("document", {}).get("id")
+            mime_type = msg.get("document", {}).get("mime_type")
+            filename = msg.get("document", {}).get("filename", "archivo")
+            print(f"📄 Archivo recibido: {media_id} ({mime_type}) - Nombre: {filename}")
+
+            document_bytes = await download_media(media_id, filename)
+
+            if document_bytes:
+                print(f"✅ Archivo descargado con éxito: {filename}")
+                user_message = f"Archivo recibido: {filename}"
+            else:
+                await send_text_message(to=from_number, message="No pude descargar tu archivo.")
                 continue
 
         else:
