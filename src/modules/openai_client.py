@@ -8,7 +8,7 @@ api_key = os.getenv("OPENAI_API_KEY")
 
 
 class OpenAIService:
-    def __init__(self):
+    def __init__(self, api_key: str=api_key):
         """Inicializa el servicio con la API Key de OpenAI."""
         self.client = AsyncOpenAI(api_key=api_key)
     

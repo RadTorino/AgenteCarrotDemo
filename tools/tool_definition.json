@@ -106,73 +106,111 @@
 {
     "type": "function",
     "name": "contact_company",
-    "description": "Deriva consultas y datos de contacto a un responsable de Célula Cocina. Es crucial seleccionar el 'type' correcto.",
+    "description": "Deriva consultas y datos de contacto a un responsable de Célula Cocina. Es crucial seleccionar el 'type' correcto. Cuando el usuario envía un archivo (imagen, PDF, etc.), el sistema lo procesa y te proporciona un ID de archivo (por ejemplo, 'FILE_...'). Debes usar este ID en los campos correspondientes.",
     "strict": true,
     "parameters": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "La naturaleza de la consulta. Determina el propósito de los datos enviados.",
-          "enum": [
-            "pedidos_pendientes",
-            "facturacion",
-            "reclamos",
-            "nuevo_cliente_mayorista",
-            "potencial_proveedor",
-            "potencial_empleado"
-          ]
+        "type": "object",
+        "properties": {
+            "type": {
+                "type": "string",
+                "description": "La naturaleza de la consulta. Determina el propósito de los datos enviados.",
+                "enum": [
+                    "pedidos_pendientes",
+                    "facturacion",
+                    "reclamos",
+                    "nuevo_cliente_mayorista",
+                    "potencial_proveedor",
+                    "potencial_empleado"
+                ]
+            },
+            "user_id": {
+                "type": "string",
+                "description": "ID del cliente registrado. Incluir solo si el cliente está identificado. De lo contrario, este campo no se debe enviar."
+            },
+            "data": {
+                "type": "object",
+                "description": "Objeto con toda la información detallada. El modelo debe rellenar todos los campos; aquellos no relevantes para el 'type' actual se deben enviar como un string vacío.",
+                "properties": {
+                    "cuit": {
+                        "type": "string"
+                    },
+                    "razon_social": {
+                        "type": "string"
+                    },
+                    "direccion": {
+                        "type": "string"
+                    },
+                    "localidad": {
+                        "type": "string"
+                    },
+                    "fecha_del_pedido": {
+                        "type": "string"
+                    },
+                    "id_del_archivo": {
+                        "type": "string",
+                        "description": "ID del archivo (comprobante, etc.) proporcionado por el sistema, no una URL."
+                    },
+                    "info": {
+                        "type": "string",
+                        "description": "Descripción detallada para un reclamo."
+                    },
+                    "id_de_imagen": {
+                        "type": "string",
+                        "description": "ID del archivo de imagen para un reclamo, proporcionado por el sistema, no una URL."
+                    },
+                    "producto_servicio": {
+                        "type": "string",
+                        "description": "Descripción de un producto/servicio ofrecido por un proveedor."
+                    },
+                    "info_contacto": {
+                        "type": "string",
+                        "description": "Datos de contacto (email/tel) de un proveedor."
+                    },
+                    "documento_presentacion": {
+                        "type": "string",
+                        "description": "ID del documento de presentación de un proveedor, proporcionado por el sistema, no una URL."
+                    },
+                    "id_al_cv": {
+                        "type": "string",
+                        "description": "ID del archivo del CV de un candidato, proporcionado por el sistema, no una URL."
+                    },
+                    "numero_pedido": {
+                        "type": "string"
+                    },
+                    "nombre_contacto": {
+                        "type": "string"
+                    },
+                    "telefono_contacto": {
+                        "type": "string",
+                        "description": "Teléfono de contacto validado con el usuario."
+                    }
+                },
+                "additionalProperties": false,
+                "required": [
+                    "cuit",
+                    "razon_social",
+                    "direccion",
+                    "localidad",
+                    "fecha_del_pedido",
+                    "id_del_archivo",
+                    "info",
+                    "id_de_imagen",
+                    "producto_servicio",
+                    "info_contacto",
+                    "documento_presentacion",
+                    "id_al_cv",
+                    "numero_pedido",
+                    "nombre_contacto",
+                    "telefono_contacto"
+                ]
+            }
         },
-        "user_id": {
-          "type": "string",
-          "description": "ID del cliente registrado. Incluir solo si el cliente está identificado. De lo contrario, este campo no se debe enviar."
-        },
-        "data": {
-          "type": "object",
-          "description": "Objeto con toda la información detallada. El modelo debe rellenar todos los campos; aquellos no relevantes para el 'type' actual se deben enviar como un string vacío.",
-          "properties": {
-            "cuit": { "type": "string" },
-            "razon_social": { "type": "string" },
-            "direccion": { "type": "string" },
-            "localidad": { "type": "string" },
-            "fecha_del_pedido": { "type": "string" },
-            "url_del_archivo": { "type": "string", "description": "URL de un comprobante, CV o presentación." },
-            "info": { "type": "string", "description": "Descripción detallada para un reclamo." },
-            "url_de_imagen": { "type": "string", "description": "URL de una imagen para un reclamo." },
-            "producto_servicio": { "type": "string", "description": "Descripción de un producto/servicio ofrecido por un proveedor." },
-            "info_contacto": { "type": "string", "description": "Datos de contacto (email/tel) de un proveedor." },
-            "documento_presentacion": { "type": "string", "description": "URL a un documento de presentación de un proveedor." },
-            "url_al_cv": { "type": "string", "description": "URL del CV de un candidato." },
-            "numero_pedido": { "type": "string" },
-            "nombre_contacto": { "type": "string" },
-            "telefono_contacto": { "type": "string", "description": "Teléfono de contacto validado con el usuario." }
-          },
-          "additionalProperties": false,
-          "required": [
-            "cuit",
-            "razon_social",
-            "direccion",
-            "localidad",
-            "fecha_del_pedido",
-            "url_del_archivo",
-            "info",
-            "url_de_imagen",
-            "producto_servicio",
-            "info_contacto",
-            "documento_presentacion",
-            "url_al_cv",
-            "numero_pedido",
-            "nombre_contacto",
-            "telefono_contacto"
-          ]
-        }
-      },
-      "required": [
-        "type",
-        "data",
-        "user_id"
-      ],
-      "additionalProperties": false
+        "required": [
+            "type",
+            "data",
+            "user_id"
+        ],
+        "additionalProperties": false
     }
 }
 ]

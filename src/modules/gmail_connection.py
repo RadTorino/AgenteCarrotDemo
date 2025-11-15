@@ -3,10 +3,13 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import Dict, Any, Optional
 from src.schemas.schemas import NotificacionSchema
+from src.modules.file_mapping_service import FileMappingService
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
+
+file_mapper = FileMappingService()
 
 class EmailConfig:
     def __init__(self):
@@ -43,12 +46,14 @@ class EmailTemplates:
     @staticmethod
     def potential_supplier(data: Dict[str, Any]) -> tuple:
         subject = "Nuevo Proveedor Potencial"
+        file_id = data.get('documento_presentacion')
+        file_link = file_mapper.get_link(file_id) if file_id else 'N/A'
         body = f"""
         Se ha contactado un nuevo proveedor potencial:
         
         Producto/Servicio: {data.get('producto_servicio', 'N/A')}
         Información de Contacto: {data.get('info_contacto', 'N/A')}
-        Documento de Presentación: {data.get('documento_presentacion', 'N/A')}
+        Documento de Presentación: {file_link}
         Telefono: {data.get('telefono_contacto', 'N/A')}
         """
         return subject, body
@@ -56,16 +61,20 @@ class EmailTemplates:
     @staticmethod
     def job_candidate(data: Dict[str, Any]) -> tuple:
         subject = "Nuevo CV Recibido"
+        file_id = data.get('id_al_cv')
+        file_link = file_mapper.get_link(file_id) if file_id else 'N/A'
         body = f"""
         Se ha recibido un nuevo CV:
         
-        URL del CV: {data.get('url_al_cv', 'N/A')}
+        URL del CV: {file_link}
         """
         return subject, body
 
     @staticmethod
     def customer_complaint(data: Dict[str, Any], user_id: Optional[str]) -> tuple:
         subject = "Nuevo Reclamo"
+        file_id = data.get('id_de_imagen')
+        file_link = file_mapper.get_link(file_id) if file_id else 'N/A'
         body = f"""
         Se ha registrado un nuevo reclamo:
         
@@ -74,7 +83,7 @@ class EmailTemplates:
         Número de Pedido: {data.get('numero_pedido', 'N/A')}
         Nombre de Contacto: {data.get('nombre_contacto', 'N/A')}
         Teléfono: {data.get('telefono_contacto', 'N/A')}
-        Imagen adjunta: {data.get('url_de_imagen', 'N/A')}
+        Imagen adjunta: {file_link}
         """
         return subject, body
 

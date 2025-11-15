@@ -8,3 +8,7 @@ uvicorn
 gspread 
 google-auth
 openai
+google-auth==2.38.0
+google-api-python-client==2.160.0
+Office365-REST-Python-Client==2.6.2
+msal==1.34.0

@@ -8,6 +8,8 @@ from src.modules.openai_client import OpenAIService
 from src.modules.responses_tooled import responses_tooled
 from src.modules.chat_memory import memory_handler
 from src.modules.gspread_conexion import get_client_by_phone
+from dotenv import load_dotenv
+load_dotenv()
 
 app = FastAPI()
 
@@ -34,6 +36,8 @@ async def receive_webhook(request: Request):
     # --- Parseo de datos ---
     data = await request.json()
     messages = parse_whatsapp_message(data)
+    print(data)
+    files_id = None
 
     if not messages:
         print("⚠️ No se encontraron mensajes en el payload.")
@@ -41,7 +45,7 @@ async def receive_webhook(request: Request):
 
     # --- Loop principal ---
     for msg in messages:
-        from_number = "54" + msg["from"][3:] #--> validar y ajustar. 
+        from_number = "54" + msg["from"][3:]  # --> validar y ajustar.
         msg_type = msg["type"]
         user_message = None
 
@@ -62,11 +66,11 @@ async def receive_webhook(request: Request):
                 continue
 
         elif msg_type == "audio":
-            media_id = msg.get("audio_id")
-            mime_type = msg.get("mime_type")
+            media_id = msg.get("audio", {}).get("id")
+            mime_type = msg.get("audio", {}).get("mime_type")
             print(f"🎧 Audio recibido: {media_id} ({mime_type})")
 
-            audio_bytes = await download_media(media_id, f"{media_id}.ogg")
+            audio_bytes = await download_media(media_id, f"{media_id}.ogg", save_to_temp=False)
 
             if audio_bytes:
                 try:
@@ -82,31 +86,34 @@ async def receive_webhook(request: Request):
                 continue
 
         elif msg_type == "image":
-            media_id = msg.get("image", {}).get("id")
-            mime_type = msg.get("image", {}).get("mime_type")
+            print(msg)
+            media_id = msg.get("image_id")
+            mime_type = msg.get("mime_type")
             caption = msg.get("image", {}).get("caption", "")
             print(f"🖼️ Imagen recibida: {media_id} ({mime_type})")
 
-            image_bytes = await download_media(media_id, f"{media_id}.jpg")
+            image_id = await download_media(media_id, f"{media_id}.jpg", save_to_temp=True)
 
-            if image_bytes:
+            if image_id:
                 print(f"✅ Imagen descargada con éxito. Caption: {caption}")
-                user_message = f"Imagen recibida con caption: {caption}" if caption else "Imagen recibida."
+                files_id = [image_id]
+                user_message = f"Archivo enviado: {filename}"
             else:
                 await send_text_message(to=from_number, message="No pude descargar tu imagen.")
                 continue
 
         elif msg_type == "document":
-            media_id = msg.get("document", {}).get("id")
+            media_id = msg.get("document_id", None)
             mime_type = msg.get("document", {}).get("mime_type")
-            filename = msg.get("document", {}).get("filename", "archivo")
+            filename = msg.get("filename", "archivo")
             print(f"📄 Archivo recibido: {media_id} ({mime_type}) - Nombre: {filename}")
 
-            document_bytes = await download_media(media_id, filename)
+            document_id = await download_media(media_id, filename, save_to_temp=True)
 
-            if document_bytes:
+            if document_id:
                 print(f"✅ Archivo descargado con éxito: {filename}")
-                user_message = f"Archivo recibido: {filename}"
+                files_id = [document_id]
+                user_message = f"Archivo enviado: {filename}"
             else:
                 await send_text_message(to=from_number, message="No pude descargar tu archivo.")
                 continue
@@ -115,12 +122,14 @@ async def receive_webhook(request: Request):
             print(f"Tipo de mensaje no manejado: {msg_type}")
             continue
 
+        print(f"🤖 Procesando mensaje del usuario: {user_message}, con archivos: {files_id}")
         # --- Respuesta agente ---
         respuesta, thread_id = await responses_tooled(
             user_message=user_message,
             client_phone=from_number,
             thread_id=thread_id,
-            user_information=user_info if not thread_id else None
+            user_information=user_info if not thread_id else None,
+            files_id = files_id 
         )
 
         response_message = await send_text_message(to=from_number, message=respuesta)

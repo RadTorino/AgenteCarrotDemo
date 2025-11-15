@@ -200,4 +200,5 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-audios_recibidos/*
+audios_recibidos/
+audios_recibidos/*.*
