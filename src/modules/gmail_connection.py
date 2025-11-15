@@ -4,10 +4,7 @@ from email.mime.multipart import MIMEMultipart
 from typing import Dict, Any, Optional
 from src.schemas.schemas import NotificacionSchema
 from src.modules.file_mapping_service import FileMappingService
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
+from src.utils.settings import settings
 
 file_mapper = FileMappingService()
 
@@ -15,17 +12,17 @@ class EmailConfig:
     def __init__(self):
         self.smtp_server = "smtp.gmail.com"
         self.smtp_port = 587
-        self.sender_email = os.getenv("SENDER_EMAIL")
-        self.sender_password = os.getenv("SENDER_PASSWORD")
+        self.sender_email = settings.SENDER_EMAIL
+        self.sender_password = settings.SENDER_PASSWORD
         
         # Different department emails based on notification type
         self.department_emails = {
-            "nuevo_cliente_mayorista": os.getenv("SALES_EMAIL"),
-            "potencial_proveedor": os.getenv("PROCUREMENT_EMAIL"),
-            "potencial_empleado": os.getenv("HR_EMAIL"),
-            "pedidos_pendientes": os.getenv("ORDERS_EMAIL"),
-            "facturacion": os.getenv("BILLING_EMAIL"),
-            "reclamos": os.getenv("SUPPORT_EMAIL")
+            "nuevo_cliente_mayorista": settings.SALES_EMAIL,
+            "potencial_proveedor": settings.PROCUREMENT_EMAIL,
+            "potencial_empleado": settings.HR_EMAIL,
+            "pedidos_pendientes": settings.ORDERS_EMAIL,
+            "facturacion": settings.BILLING_EMAIL,
+            "reclamos": settings.SUPPORT_EMAIL
         }
 
 class EmailTemplates:

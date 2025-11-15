@@ -2,17 +2,19 @@ import os, requests
 from src.modules.file_mapping_service import FileMappingService
 import tempfile
 from typing import Optional
-from dotenv import load_dotenv
-load_dotenv()
+from src.utils.settings import settings
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 # 1. An instance is created at the module level. This is correct.
 file_mapper = FileMappingService()
 
-ACCESS_TOKEN = os.getenv("WHATSAPP_ACCESS_TOKEN")
+ACCESS_TOKEN = settings.WHATSAPP_ACCESS_TOKEN
 AUDIO_FOLDER = "audios_recibidos"
-PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
-API_VERSION = os.getenv("WHATSAPP_API_VERSION", "v24.0")
-print(f"Access Token: {ACCESS_TOKEN}")
+PHONE_NUMBER_ID = settings.PHONE_NUMBER_ID
+API_VERSION = settings.WHATSAPP_API_VERSION
+logger.debug(f"Access Token: {ACCESS_TOKEN}")
 os.makedirs(AUDIO_FOLDER, exist_ok=True)
 
 def verify_signature(body_bytes, signature):
@@ -31,28 +33,28 @@ async def download_media(media_id: str, filename: Optional[str] = None, save_to_
     try:
         resp = requests.get(url, headers=headers, timeout=15)
     except Exception as e:
-        print(f"Error al solicitar metadata del media_id {media_id}: {e}")
+        logger.error(f"Error al solicitar metadata del media_id {media_id}: {e}", exc_info=True)
         return None
 
     if resp.status_code != 200:
-        print(f"Error al obtener metadata del media_id {media_id}: {resp.text}")
+        logger.error(f"Error al obtener metadata del media_id {media_id}: {resp.text}")
         return None
 
     media_info = resp.json()
     media_url = media_info.get("url")
     if not media_url:
-        print(f"No se encontró URL para media_id {media_id}")
+        logger.error(f"No se encontró URL para media_id {media_id}")
         return None
 
     # 2. Descargar el archivo real
     try:
         media_resp = requests.get(media_url, headers=headers, timeout=30)
     except Exception as e:
-        print(f"Error al descargar media {media_id}: {e}")
+        logger.error(f"Error al descargar media {media_id}: {e}", exc_info=True)
         return None
 
     if media_resp.status_code != 200:
-        print(f"Error al descargar media: {media_resp.text}")
+        logger.error(f"Error al descargar media: {media_resp.text}")
         return None
 
     content = media_resp.content
@@ -73,7 +75,7 @@ async def download_media(media_id: str, filename: Optional[str] = None, save_to_
             id = file_mapper.create_mapping(tmp.name)
             return id
         except Exception as e:
-            print(f"Error guardando archivo temporal para media_id {media_id}: {e}")
+            logger.error(f"Error guardando archivo temporal para media_id {media_id}: {e}", exc_info=True)
             return None
 
     

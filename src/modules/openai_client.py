@@ -1,10 +1,8 @@
-import os, io
+import io
 from openai import AsyncOpenAI
-from dotenv import load_dotenv
+from src.utils.settings import settings
 
-
-load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
+api_key = settings.OPENAI_API_KEY
 
 
 class OpenAIService:

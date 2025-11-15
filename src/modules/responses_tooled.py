@@ -1,6 +1,5 @@
 import json, os, asyncio
 from src.modules.openai_client import OpenAIService
-from src.utils.config import conversations
 from src.modules.gspread_conexion import (
     insertar_cliente,
     crear_pedido_completo,
@@ -9,7 +8,7 @@ from src.modules.gspread_conexion import (
 from src.modules.gmail_connection import send_notification
 from src.utils.config import config
 from fastapi import APIRouter, HTTPException, Depends
-from src.utils.config import config, conversations
+from src.utils.config import config
 from src.schemas.schemas import NotificacionSchema
 from tools.query_handler import (
     handle_get_client, 

@@ -6,3 +6,9 @@ ngrok http 8000
 ```
 
 Adjustar requerimientos para el CV
+Chequear cómo maneja múltiples mensajes.
+Ajustar whatsapp Handler. 
+
+Caidas del servidor. 
+
+

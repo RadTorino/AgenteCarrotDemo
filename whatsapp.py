@@ -1,46 +1,44 @@
 from fastapi import FastAPI, Request, HTTPException, Query
 import hmac
 import hashlib
-import os
-import requests
 from src.modules.whatsapp_handler import download_media, send_text_message, parse_whatsapp_message
 from src.modules.openai_client import OpenAIService
 from src.modules.responses_tooled import responses_tooled
 from src.modules.chat_memory import memory_handler
 from src.modules.gspread_conexion import get_client_by_phone
-from dotenv import load_dotenv
-load_dotenv()
+from src.utils.settings import settings
+from src.utils.logger import get_logger
 
+logger = get_logger(__name__)
 app = FastAPI()
 
-VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "abcd")
-APP_SECRET = os.getenv("APP_SECRET") 
-ACCESS_TOKEN = os.getenv("WHATSAPP_ACCESS_TOKEN")
-PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
-API_VERSION = os.getenv("WHATSAPP_API_VERSION", "v24.0")
+VERIFY_TOKEN = settings.WHATSAPP_VERIFY_TOKEN
+APP_SECRET = settings.APP_SECRET
+ACCESS_TOKEN = settings.WHATSAPP_ACCESS_TOKEN
+PHONE_NUMBER_ID = settings.PHONE_NUMBER_ID
+API_VERSION = settings.WHATSAPP_API_VERSION
 
 agent = OpenAIService()
 
-
-
 @app.post("/webhook")
 async def receive_webhook(request: Request):
-    print("📩 Entró al endpoint POST")
+    logger.info("📩 Entró al endpoint POST")
 
     # --- Verificación de firma ---
     body_bytes = await request.body()
     signature = request.headers.get("X-Hub-Signature-256")
     if not verify_signature(body_bytes, signature):
+        logger.error("Invalid signature")
         raise HTTPException(status_code=403, detail="Invalid signature")
 
     # --- Parseo de datos ---
     data = await request.json()
     messages = parse_whatsapp_message(data)
-    print(data)
+    logger.debug(f"Received data: {data}")
     files_id = None
 
     if not messages:
-        print("⚠️ No se encontraron mensajes en el payload.")
+        logger.warning("No se encontraron mensajes en el payload.")
         return {"status": "no messages"}
 
     # --- Loop principal ---
@@ -49,18 +47,18 @@ async def receive_webhook(request: Request):
         msg_type = msg["type"]
         user_message = None
 
-        print(f"📨 Mensaje de {from_number} - tipo: {msg_type}")
+        logger.info(f"📨 Mensaje de {from_number} - tipo: {msg_type}")
 
         thread_id = memory_handler.get_or_create_thread(from_number)
         if not thread_id:
             user_info = None
             user_info = get_client_by_phone(from_number)
             if user_info:
-                print(f"👤 Información del usuario: {user_info}")
+                logger.info(f"👤 Información del usuario: {user_info}")
 
         if msg_type == "text":
             user_message = msg.get("text")
-            print(f"💬 Texto recibido: {user_message}")
+            logger.info(f"💬 Texto recibido: {user_message}")
             if not user_message:
                 await send_text_message(to=from_number, message="Perdón, no puedo procesar tu mensaje.")
                 continue
@@ -68,7 +66,7 @@ async def receive_webhook(request: Request):
         elif msg_type == "audio":
             media_id = msg.get("audio", {}).get("id")
             mime_type = msg.get("audio", {}).get("mime_type")
-            print(f"🎧 Audio recibido: {media_id} ({mime_type})")
+            logger.info(f"🎧 Audio recibido: {media_id} ({mime_type})")
 
             audio_bytes = await download_media(media_id, f"{media_id}.ogg", save_to_temp=False)
 
@@ -76,9 +74,9 @@ async def receive_webhook(request: Request):
                 try:
                     transcription = await agent.transcribe_audio(audio_bytes=audio_bytes, language="es")
                     user_message = transcription.text
-                    print(f"📝 Transcripción: {user_message}")
+                    logger.info(f"📝 Transcripción: {user_message}")
                 except Exception as e:
-                    print(f"❌ Error procesando audio: {e}")
+                    logger.error(f"❌ Error procesando audio: {e}", exc_info=True)
                     await send_text_message(to=from_number, message="Hubo un error al procesar tu audio.")
                     continue
             else:
@@ -86,18 +84,18 @@ async def receive_webhook(request: Request):
                 continue
 
         elif msg_type == "image":
-            print(msg)
+            logger.debug(f"Image message payload: {msg}")
             media_id = msg.get("image_id")
             mime_type = msg.get("mime_type")
             caption = msg.get("image", {}).get("caption", "")
-            print(f"🖼️ Imagen recibida: {media_id} ({mime_type})")
+            logger.info(f"🖼️ Imagen recibida: {media_id} ({mime_type})")
 
             image_id = await download_media(media_id, f"{media_id}.jpg", save_to_temp=True)
 
             if image_id:
-                print(f"✅ Imagen descargada con éxito. Caption: {caption}")
+                logger.info(f"✅ Imagen descargada con éxito. Caption: {caption}")
                 files_id = [image_id]
-                user_message = f"Archivo enviado: {filename}"
+                user_message = f"Archivo enviado: {image_id}"
             else:
                 await send_text_message(to=from_number, message="No pude descargar tu imagen.")
                 continue
@@ -106,12 +104,12 @@ async def receive_webhook(request: Request):
             media_id = msg.get("document_id", None)
             mime_type = msg.get("document", {}).get("mime_type")
             filename = msg.get("filename", "archivo")
-            print(f"📄 Archivo recibido: {media_id} ({mime_type}) - Nombre: {filename}")
+            logger.info(f"📄 Archivo recibido: {media_id} ({mime_type}) - Nombre: {filename}")
 
             document_id = await download_media(media_id, filename, save_to_temp=True)
 
             if document_id:
-                print(f"✅ Archivo descargado con éxito: {filename}")
+                logger.info(f"✅ Archivo descargado con éxito: {filename}")
                 files_id = [document_id]
                 user_message = f"Archivo enviado: {filename}"
             else:
@@ -119,10 +117,10 @@ async def receive_webhook(request: Request):
                 continue
 
         else:
-            print(f"Tipo de mensaje no manejado: {msg_type}")
+            logger.warning(f"Tipo de mensaje no manejado: {msg_type}")
             continue
 
-        print(f"🤖 Procesando mensaje del usuario: {user_message}, con archivos: {files_id}")
+        logger.info(f"🤖 Procesando mensaje del usuario: {user_message}, con archivos: {files_id}")
         # --- Respuesta agente ---
         respuesta, thread_id = await responses_tooled(
             user_message=user_message,
@@ -134,23 +132,9 @@ async def receive_webhook(request: Request):
 
         response_message = await send_text_message(to=from_number, message=respuesta)
         memory_handler.update_thread_activity(from_number, thread_id)
-        print(f"✅ Respuesta enviada a {from_number}: {response_message}")
+        logger.info(f"✅ Respuesta enviada a {from_number}: {response_message}")
 
     return {"status": "received"}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 def verify_signature(request_body: bytes, signature_header: str):
     """Verifica la firma X-Hub-Signature-256 con HMAC SHA256"""
@@ -169,11 +153,11 @@ def verify_webhook( hub_mode: str = Query(None, alias="hub.mode"),
     hub_verify_token: str = Query(None, alias="hub.verify_token"),
 ):
     """Endpoint que Meta llama para verificar tu webhook (challenge)"""
-    print("Entro al endpoint get")
-    print(f"hub_mode: {hub_mode}, hub_challenge: {hub_challenge}, hub_verify_token: {hub_verify_token}")
+    logger.info("GET /webhook called")
+    logger.info(f"Webhook verification: hub_mode={hub_mode}, hub_challenge={hub_challenge}, hub_verify_token={hub_verify_token}")
     if hub_mode == "subscribe" and hub_verify_token == VERIFY_TOKEN:
-        print(type(hub_challenge))
+        logger.debug(f"hub_challenge type: {type(hub_challenge)}")
         return int(hub_challenge)
     else:
-        print(VERIFY_TOKEN)
+        logger.debug(f"VERIFY_TOKEN: {VERIFY_TOKEN}")
         return VERIFY_TOKEN

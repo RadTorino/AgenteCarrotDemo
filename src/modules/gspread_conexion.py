@@ -1,13 +1,16 @@
-import os, json, base64, gspread, uuid, pytz
+import json, base64, gspread, uuid, pytz
 from datetime import datetime
 from google.oauth2.service_account import Credentials
+from src.utils.settings import settings
+from src.utils.logger import get_logger
 
+logger = get_logger(__name__)
 tz_buenos_aires = pytz.timezone('America/Argentina/Buenos_Aires')
 
 def get_gspread_client():
     scopes = ["https://www.googleapis.com/auth/spreadsheets"]
 
-    cred_base64 = os.getenv("GOOGLE_CREDENTIALS_BASE64").strip("'")
+    cred_base64 = settings.GOOGLE_CREDENTIALS_BASE64.strip("'")
     if not cred_base64:
         raise ValueError("No se encontró GOOGLE_CREDENTIALS_BASE64 en el entorno.")
 
@@ -123,7 +126,7 @@ def crear_pedido_completo(sheet_id, user_id, products, worksheet_pedidos_name="o
         ]
         worksheet_pedidos.append_row(fila_pedido, value_input_option="USER_ENTERED")
     except Exception as e:
-        print(f"Error al insertar en la hoja '{worksheet_pedidos_name}': {e}")
+        logger.error(f"Error al insertar en la hoja '{worksheet_pedidos_name}': {e}", exc_info=True)
         return None
 
     # Paso 3: Recorrer la lista de productos e insertar cada ítem
@@ -135,7 +138,7 @@ def crear_pedido_completo(sheet_id, user_id, products, worksheet_pedidos_name="o
             item_id = str(uuid.uuid4())
             unit_price = next((prod.get("unit_price") for prod in products_catalog if str(prod.get("id")) == str(item.get("product_id"))), 0)
             if unit_price == 0:
-                print(f"Advertencia: No se encontró el producto con ID {item.get('product_id')} en el catálogo.")
+                logger.warning(f"Advertencia: No se encontró el producto con ID {item.get('product_id')} en el catálogo.")
             filas_items.append([
                 item_id,
                 pedido_id,
@@ -143,19 +146,19 @@ def crear_pedido_completo(sheet_id, user_id, products, worksheet_pedidos_name="o
                 item.get("quantity"),
                 unit_price
             ])
-            print(f"Preparando ítem para insertar: {filas_items[-1]}")
+            logger.debug(f"Preparando ítem para insertar: {filas_items[-1]}")
         if filas_items:
             worksheet_items.append_rows(filas_items, value_input_option="USER_ENTERED")
     except Exception as e:
-        print(f"Error al insertar en la hoja '{worksheet_items_name}': {e}")
+        logger.error(f"Error al insertar en la hoja '{worksheet_items_name}': {e}", exc_info=True)
         # En una versión de producción, querrías revertir el pedido principal si falla la inserción de ítems.
         return None
 
-    print(f"Pedido completo {pedido_id} creado con {len(products)} ítems.")
+    logger.info(f"Pedido completo {pedido_id} creado con {len(products)} ítems.")
     return pedido_id
 
 def get_client_by_phone(phone_number):
-    sheet_id = os.getenv("SHEET_ID")
+    sheet_id = settings.SHEET_ID
     worksheet_name = "phones"
     phones = leer_google_sheet(sheet_id, worksheet_name)
     
