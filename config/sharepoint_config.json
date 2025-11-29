@@ -1,0 +1,19 @@
+{
+    "Celula": {
+        "site_name": "Desarrollo",
+        "site_url": "https://carrot001.sharepoint.com/sites/Desarrollo",
+        "fallback_folder": "Error_Handling",
+        "libraries": {
+            "documents": {
+                "path": "Documentos compartidos/BOT Whatsapp",
+                "folders": {
+                    "staging": "Documentos compartidos/BOT Whatsapp/Staging",
+                    "potencial_empleado": "Documentos compartidos/BOT Whatsapp/Curriculums",
+                    "facturacion": "Documentos compartidos/BOT Whatsapp/Facturas",
+                    "reclamos": "Documentos compartidos/BOT Whatsapp/Reclamos",
+                    "potencial_proveedor": "Documentos compartidos/BOT Whatsapp/Proveedores"
+                }
+            }
+        }
+    }
+}

@@ -2,15 +2,19 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import Dict, Any, Optional
+from urllib.parse import quote
 from src.schemas.schemas import NotificacionSchema
 from src.modules.file_mapping_service import FileMappingService
 from src.utils.settings import settings
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 file_mapper = FileMappingService()
 
 class EmailConfig:
     def __init__(self):
-        self.smtp_server = "smtp.gmail.com"
+        self.smtp_server = settings.SMTP_SERVER
         self.smtp_port = 587
         self.sender_email = settings.SENDER_EMAIL
         self.sender_password = settings.SENDER_PASSWORD
@@ -41,37 +45,34 @@ class EmailTemplates:
         return subject, body
 
     @staticmethod
-    def potential_supplier(data: Dict[str, Any]) -> tuple:
+    def potential_supplier(data: Dict[str, Any], file_url: Optional[str]) -> tuple:
         subject = "Nuevo Proveedor Potencial"
-        file_id = data.get('documento_presentacion')
-        file_link = file_mapper.get_link(file_id) if file_id else 'N/A'
+        encoded_url = quote(file_url, safe=':/') if file_url else 'No adjunto'
         body = f"""
         Se ha contactado un nuevo proveedor potencial:
         
         Producto/Servicio: {data.get('producto_servicio', 'N/A')}
         Información de Contacto: {data.get('info_contacto', 'N/A')}
-        Documento de Presentación: {file_link}
+        Documento de Presentación: {encoded_url}
         Telefono: {data.get('telefono_contacto', 'N/A')}
         """
         return subject, body
 
     @staticmethod
-    def job_candidate(data: Dict[str, Any]) -> tuple:
+    def job_candidate(data: Dict[str, Any], file_url: Optional[str]) -> tuple:
         subject = "Nuevo CV Recibido"
-        file_id = data.get('id_al_cv')
-        file_link = file_mapper.get_link(file_id) if file_id else 'N/A'
+        encoded_url = quote(file_url, safe=':/') if file_url else 'No adjunto'
         body = f"""
         Se ha recibido un nuevo CV:
         
-        URL del CV: {file_link}
+        URL del CV: {encoded_url}
         """
         return subject, body
 
     @staticmethod
-    def customer_complaint(data: Dict[str, Any], user_id: Optional[str]) -> tuple:
+    def customer_complaint(data: Dict[str, Any], user_id: Optional[str], file_url: Optional[str]) -> tuple:
         subject = "Nuevo Reclamo"
-        file_id = data.get('id_de_imagen')
-        file_link = file_mapper.get_link(file_id) if file_id else 'N/A'
+        encoded_url = quote(file_url, safe=':/') if file_url else 'No adjunta'
         body = f"""
         Se ha registrado un nuevo reclamo:
         
@@ -80,7 +81,7 @@ class EmailTemplates:
         Número de Pedido: {data.get('numero_pedido', 'N/A')}
         Nombre de Contacto: {data.get('nombre_contacto', 'N/A')}
         Teléfono: {data.get('telefono_contacto', 'N/A')}
-        Imagen adjunta: {file_link}
+        Imagen adjunta: {encoded_url}
         """
         return subject, body
 
@@ -103,7 +104,7 @@ class EmailHandler:
                 server.send_message(message)
             return True
         except Exception as e:
-            print(f"Error sending email: {e}")
+            logger.error(f"Error sending email: {e}")
             return False
 
 async def send_notification(notification: NotificacionSchema) -> bool:
@@ -115,14 +116,20 @@ async def send_notification(notification: NotificacionSchema) -> bool:
             "nuevo_cliente_mayorista": email_handler.templates.new_wholesale_client,
             "potencial_proveedor": email_handler.templates.potential_supplier,
             "potencial_empleado": email_handler.templates.job_candidate,
-            "reclamos": lambda data: email_handler.templates.customer_complaint(data, notification.user_id)
+            "reclamos":   email_handler.templates.customer_complaint,
         }
 
         if notification.type not in template_map:
             raise ValueError(f"Unsupported notification type: {notification.type}")
 
         # Get the appropriate email template
-        subject, body = template_map[notification.type](notification.data)
+        match notification.type:
+            case "nuevo_cliente_mayorista":
+                subject, body = template_map[notification.type](notification.data)
+            case "reclamos":
+                subject, body = template_map[notification.type](notification.data, notification.user_id, notification.file_url)
+            case _:
+                subject, body = template_map[notification.type](notification.data, notification.file_url)
         
         # Get the appropriate department email
         to_email = email_handler.config.department_emails.get(notification.type)
@@ -136,13 +143,13 @@ async def send_notification(notification: NotificacionSchema) -> bool:
         )
 
         if success:
-            print(f"Email sent successfully - Type: {notification.type}")
+            logger.info(f"Email sent successfully - Type: {notification.type}")
         else:
-            print(f"Failed to send email - Type: {notification.type}")
+            logger.error(f"Failed to send email - Type: {notification.type}")
 
         return success
 
     except Exception as e:
-        print(f"Error processing notification: {e}")
+        logger.error(f"Error processing notification: {e}")
         return False
 

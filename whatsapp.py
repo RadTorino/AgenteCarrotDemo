@@ -64,11 +64,13 @@ async def receive_webhook(request: Request):
                 continue
 
         elif msg_type == "audio":
-            media_id = msg.get("audio", {}).get("id")
-            mime_type = msg.get("audio", {}).get("mime_type")
-            logger.info(f"🎧 Audio recibido: {media_id} ({mime_type})")
-
-            audio_bytes = await download_media(media_id, f"{media_id}.ogg", save_to_temp=False)
+            media_id = msg.get("audio_id")
+            audio_bytes = await download_media(
+                media_id=media_id,
+                media_type='audio',
+                from_number=from_number,
+                timestamp=msg.get("timestamp")
+            )
 
             if audio_bytes:
                 try:
@@ -84,34 +86,38 @@ async def receive_webhook(request: Request):
                 continue
 
         elif msg_type == "image":
-            logger.debug(f"Image message payload: {msg}")
             media_id = msg.get("image_id")
-            mime_type = msg.get("mime_type")
-            caption = msg.get("image", {}).get("caption", "")
-            logger.info(f"🖼️ Imagen recibida: {media_id} ({mime_type})")
-
-            image_id = await download_media(media_id, f"{media_id}.jpg", save_to_temp=True)
+            image_id = await download_media(
+                media_id=media_id,
+                media_type='image',
+                from_number=from_number,
+                timestamp=msg.get("timestamp"),
+                mime_type=msg.get("mime_type")
+            )
 
             if image_id:
-                logger.info(f"✅ Imagen descargada con éxito. Caption: {caption}")
                 files_id = [image_id]
                 user_message = f"Archivo enviado: {image_id}"
+                logger.info(f"✅ Imagen descargada y mapeada con éxito. ID: {image_id}")
             else:
                 await send_text_message(to=from_number, message="No pude descargar tu imagen.")
                 continue
 
         elif msg_type == "document":
-            media_id = msg.get("document_id", None)
-            mime_type = msg.get("document", {}).get("mime_type")
-            filename = msg.get("filename", "archivo")
-            logger.info(f"📄 Archivo recibido: {media_id} ({mime_type}) - Nombre: {filename}")
-
-            document_id = await download_media(media_id, filename, save_to_temp=True)
+            media_id = msg.get("document_id")
+            document_id = await download_media(
+                media_id=media_id,
+                media_type='document',
+                from_number=from_number,
+                timestamp=msg.get("timestamp"),
+                original_filename=msg.get("filename"),
+                mime_type=msg.get("mime_type")
+            )
 
             if document_id:
-                logger.info(f"✅ Archivo descargado con éxito: {filename}")
                 files_id = [document_id]
-                user_message = f"Archivo enviado: {filename}"
+                user_message = f"Archivo enviado: {document_id}"
+                logger.info(f"✅ Documento descargado y mapeado con éxito. ID: {document_id}")
             else:
                 await send_text_message(to=from_number, message="No pude descargar tu archivo.")
                 continue

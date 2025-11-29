@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     # Gmail
     SENDER_EMAIL: str
     SENDER_PASSWORD: str
+    SMTP_SERVER: str  
     SALES_EMAIL: str
     PROCUREMENT_EMAIL: str
     HR_EMAIL: str
@@ -43,6 +44,8 @@ class Settings(BaseSettings):
     AZURE_SECRET_ID: Optional[str] = None
     AZURE_CLIENT_SECRET: Optional[str] = None
     SHAREPOINT_SITE_URL: str
+    CERT_PATH: Optional[str] = None
+    THUMBPRINT: Optional[str] = None
 
     # Logging
     LOG_LEVEL: str = "INFO"
