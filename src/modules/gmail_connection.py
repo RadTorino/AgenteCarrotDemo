@@ -54,7 +54,8 @@ class EmailTemplates:
         Producto/Servicio: {data.get('producto_servicio', 'N/A')}
         Información de Contacto: {data.get('info_contacto', 'N/A')}
         Documento de Presentación: {encoded_url}
-        Telefono: {data.get('telefono_contacto', 'N/A')}
+        Telefono: {data.get('telefono_contacto', 'N/A')},
+        Descripción Adicional: {data.get('descripcion_adicional', 'N/A')}
         """
         return subject, body
 
@@ -64,6 +65,8 @@ class EmailTemplates:
         encoded_url = quote(file_url, safe=':/') if file_url else 'No adjunto'
         body = f"""
         Se ha recibido un nuevo CV:
+
+        Descripción: {data.get('descripcion_adicional', 'N/A')}
         
         URL del CV: {encoded_url}
         """

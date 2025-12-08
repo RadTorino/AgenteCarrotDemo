@@ -1,10 +1,5 @@
 import json, os, asyncio
 from src.modules.openai_client import OpenAIService
-from src.modules.gspread_conexion import (
-    insertar_cliente,
-    crear_pedido_completo,
-    leer_google_sheet,
-    add_phone_to_client)
 from src.modules.gmail_connection import send_notification
 from src.utils.config import config
 from fastapi import APIRouter, HTTPException, Depends
@@ -41,13 +36,7 @@ tools_path = os.path.normpath(tools_path)
 with open(tools_path, 'r', encoding='utf-8') as file:
     TOOLS = json.load(file)
 
-def cargar_productos():
-    from src.modules.gspread_conexion import leer_google_sheet  # Ajustá la ruta real
-    productos = leer_google_sheet(PRODUCTS_SHEET_ID, PRODUCTS_WORKSHEET_NAME)
-    print(productos)
-    return productos
 
-productos = cargar_productos()
 
 
 TOOL_HANDLERS = {
@@ -96,7 +85,7 @@ async def required_query(tool_call: dict, client_phone: str):
 
 
 async def responses_tooled(user_message: str,  thread_id:str=None, 
-                           products:str=productos, 
+                           products:str=None, 
                            system_message: str = system_message, 
                            user_information: str = None,
                            client_phone:str = None,

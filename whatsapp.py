@@ -5,7 +5,7 @@ from src.modules.whatsapp_handler import download_media, send_text_message, pars
 from src.modules.openai_client import OpenAIService
 from src.modules.responses_tooled import responses_tooled
 from src.modules.chat_memory import memory_handler
-from src.modules.gspread_conexion import get_client_by_phone
+from src.utils.db_connection import get_client_by_phone, get_products
 from src.utils.settings import settings
 from src.utils.logger import get_logger
 
@@ -42,6 +42,7 @@ async def receive_webhook(request: Request):
         return {"status": "no messages"}
 
     # --- Loop principal ---
+    productos = None
     for msg in messages:
         from_number = "54" + msg["from"][3:]  # --> validar y ajustar.
         msg_type = msg["type"]
@@ -51,8 +52,9 @@ async def receive_webhook(request: Request):
 
         thread_id = memory_handler.get_or_create_thread(from_number)
         if not thread_id:
+            productos = await get_products()
             user_info = None
-            user_info = get_client_by_phone(from_number)
+            user_info = await get_client_by_phone(from_number)
             if user_info:
                 logger.info(f"👤 Información del usuario: {user_info}")
 
@@ -133,7 +135,8 @@ async def receive_webhook(request: Request):
             client_phone=from_number,
             thread_id=thread_id,
             user_information=user_info if not thread_id else None,
-            files_id = files_id 
+            files_id = files_id,
+            products=productos 
         )
 
         response_message = await send_text_message(to=from_number, message=respuesta)

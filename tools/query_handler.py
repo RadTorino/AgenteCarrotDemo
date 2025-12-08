@@ -1,88 +1,188 @@
-from src.modules.gspread_conexion import (
-    insertar_cliente,
-    crear_pedido_completo,
-    leer_google_sheet,
-    add_phone_to_client)
-from src.modules.gmail_connection import send_notification
-from src.utils.config import config
-import logging 
-from src.schemas.schemas import NotificacionSchema
+import logging
+import uuid
+from datetime import datetime
+import pytz
+from src.modules.gspread_conexion import leer_google_sheet, crear_pedido_completo, add_phone_to_client
+from utils.config import config
+from utils.settings import settings
 from src.modules.sharepoint_service import SharePointService
 from src.modules.file_mapping_service import FileMappingService
-from src.utils.logger import get_logger
-from src.utils.settings import settings
+from src.modules.gmail_connection import send_notification, NotificacionSchema
+from src.utils.db_connection import get_products
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
+
+# Instantiate the SharePoint service
+# Replace 'your_client_name' with the actual client name from your config
+sp_service = SharePointService(client_name='Celula')
+EXCEL_FILE_NAME = config["excel_name"] # The name of your Excel file
 
 async def handle_create_purchase(arguments):
+    """
+    Creates a complete purchase order by adding a record to the 'orders' table
+    and corresponding items to the 'orders_detail' table in the SharePoint Excel file.
+    """
+    try:
+        # --- New SharePoint Logic ---
+        order_id = str(uuid.uuid4())
+        tz_buenos_aires = pytz.timezone('America/Argentina/Buenos_Aires')
+        fecha_actual = datetime.now(tz_buenos_aires).strftime("%Y-%m-%d %H:%M:%S")
 
-    try: 
-        nuevo_id = crear_pedido_completo(
-            sheet_id=config["compras_sheet_id"],
-            user_id=arguments["user_id"],
-            products=arguments["products"]
+        products = await get_products()
+
+        # 1. Add the main order row
+        order_row = {
+            "id": order_id,
+            "user_id": arguments["user_id"],
+            "fecha": fecha_actual,
+            "status": "pending"
+        }
+        await sp_service.add_row_to_worksheet(
+            folder_key="mother",
+            file_name=EXCEL_FILE_NAME,
+            worksheet_name=config["orders_worksheet_name"],
+            row_data=order_row
         )
-        query_results = {"new_purchase_id": nuevo_id}
+
+        # 2. Add each product to the order details
+        for product in arguments.get("products", []):
+            detail_row = {
+                "order_id": order_id,
+                "product_id": product.get("product_id"),
+                "quantity": product.get("quantity"),
+                "unit_price": next((p["price"] for p in products if p["id"] == product.get("product_id")), 0)
+                # Assuming unit_price is handled or not needed here for now
+            }
+            await sp_service.add_row_to_worksheet(
+                folder_key="mother",
+                file_name=EXCEL_FILE_NAME,
+                worksheet_name="orders_detail",
+                row_data=detail_row
+            )
+        
+        query_results = {"new_purchase_id": order_id}
         return query_results
+
+        # --- Old Google Sheets Logic ---
+        # nuevo_id = crear_pedido_completo(
+        #     sheet_id=config["compras_sheet_id"],
+        #     user_id=arguments["user_id"],
+        #     products=arguments["products"]
+        # )
+        # query_results = {"new_purchase_id": nuevo_id}
+        # return query_results
     except Exception as e:
         logging.error(f"Error al crear la compra: {e}")
         return {"error": "Error al crear la compra."}
 
 
-
 async def handle_get_client_orders(arguments):
-    
+    """
+    Retrieves all orders and their details for a given client from the SharePoint Excel file.
+    """
     try:
-        compras = leer_google_sheet(
-            sheet_id=config["compras_sheet_id"],
-            worksheet_name=config["compras_worksheet_name"]
+        # --- New SharePoint Logic ---
+        orders_df = await sp_service.read_worksheet_as_df(
+            folder_key="mother", file_name=EXCEL_FILE_NAME, worksheet_name="orders"
         )
-        print(f"Compras obtenidas: {compras}")
-        compras_cliente = [c for c in compras if str(c.get("user_id"))== str(arguments["user_id"])]
-        orders_detail = leer_google_sheet(
-                sheet_id=config["compras_sheet_id"],
-                worksheet_name="orders_detail")
+        orders_detail_df = await sp_service.read_worksheet_as_df(
+            folder_key="mother", file_name=EXCEL_FILE_NAME, worksheet_name="orders_detail"
+        )
+
+        # Filter orders for the specific user
+        client_orders_df = orders_df[orders_df['user_id'].astype(str) == str(arguments["user_id"])]
+        compras_cliente = client_orders_df.to_dict('records')
+
+        # Attach order details to each order
         for compra in compras_cliente:
             compra_id = compra.get("id")
-            detalles = [
-            {k: v for k, v in d.items() if k not in ["id", "order_id"]}
-            for d in orders_detail
-            if str(d.get("order_id")) == str(compra_id)
-        ]
-            compra["details"] = detalles
+            details_df = orders_detail_df[orders_detail_df['order_id'].astype(str) == str(compra_id)]
+            # Remove redundant IDs from the details
+            compra["details"] = details_df.drop(columns=['id', 'order_id'], errors='ignore').to_dict('records')
+
         query_results = {"orders": compras_cliente}
         return query_results
+
+        # --- Old Google Sheets Logic ---
+        # compras = leer_google_sheet(
+        #     sheet_id=config["compras_sheet_id"],
+        #     worksheet_name=config["compras_worksheet_name"]
+        # )
+        # print(f"Compras obtenidas: {compras}")
+        # compras_cliente = [c for c in compras if str(c.get("user_id"))== str(arguments["user_id"])]
+        # orders_detail = leer_google_sheet(
+        #         sheet_id=config["compras_sheet_id"],
+        #         worksheet_name="orders_detail")
+        # for compra in compras_cliente:
+        #     compra_id = compra.get("id")
+        #     detalles = [
+        #     {k: v for k, v in d.items() if k not in ["id", "order_id"]}
+        #     for d in orders_detail
+        #     if str(d.get("order_id")) == str(compra_id)
+        # ]
+        #     compra["details"] = detalles
+        # query_results = {"orders": compras_cliente}
+        # return query_results
     except Exception as e:
         logging.error(f"Error al obtener las compras del cliente: {e}")
         return {"error": "Error al obtener las compras del cliente."}
-    
 
 
 async def handle_get_client(arguments):
-    
-    try:       
-        clientes = leer_google_sheet(
-            sheet_id=config["clientes_sheet_id"],
-            worksheet_name=config["clientes_worksheet_name"]
+    """
+    Finds a client by their CUIT in the SharePoint Excel file.
+    """
+    try:
+        # --- New SharePoint Logic ---
+        clients_df = await sp_service.read_worksheet_as_df(
+            folder_key="mother", file_name=EXCEL_FILE_NAME, worksheet_name="clients"
         )
-        cliente = next((c for c in clientes if str(c.get("cuit")) == str(arguments["cuit"])), None)
-        query_results = {"client": cliente} if cliente else {"error": "Cliente no encontrado."}
+        # Find the client row
+        client_series = clients_df[clients_df['cuit'].astype(str) == str(arguments["cuit"])].iloc[0]
+        cliente = client_series.to_dict()
+        query_results = {"client": cliente}
         return query_results
-    except Exception as e:
-        logging.error(f"Error al obtener el cliente: {e}")
-        return {"error": "Error al obtener el cliente."}
-    
+
+        # --- Old Google Sheets Logic ---
+        # clientes = leer_google_sheet(
+        #     sheet_id=config["clientes_sheet_id"],
+        #     worksheet_name=config["clientes_worksheet_name"]
+        # )
+        # cliente = next((c for c in clientes if str(c.get("cuit")) == str(arguments["cuit"])), None)
+        # query_results = {"client": cliente} if cliente else {"error": "Cliente no encontrado."}
+        # return query_results
+    except (Exception, IndexError): # IndexError if client not found
+        logging.error(f"Error al obtener el cliente o cliente no encontrado: {arguments.get('cuit')}")
+        return {"error": "Cliente no encontrado."}
 
 
 async def handle_link_phone_to_client(arguments):
+    """
+    Links a phone number to a client by adding a row to the 'phones' table.
+    """
     try:
-        phone_id = add_phone_to_client(
-            sheet_id=config["compras_sheet_id"],
-            user_id = arguments["user_id"],
-            phone_number=arguments["phone_number"]
+        # --- New SharePoint Logic ---
+        phone_row = {
+            "user_id": arguments["user_id"],
+            "phone_number": arguments["phone_number"]
+        }
+        added_row = await sp_service.add_row_to_worksheet(
+            folder_key="mother",
+            file_name=EXCEL_FILE_NAME,
+            worksheet_name="phones",
+            row_data=phone_row
         )
-        query_results = {"phone_id": phone_id}
+        query_results = {"phone_id": added_row.get("id")}
         return query_results
+
+        # --- Old Google Sheets Logic ---
+        # phone_id = add_phone_to_client(
+        #     sheet_id=config["compras_sheet_id"],
+        #     user_id = arguments["user_id"],
+        #     phone_number=arguments["phone_number"]
+        # )
+        # query_results = {"phone_id": phone_id}
+        # return query_results
     except Exception as e:
         logging.error(f"Error al vincular el teléfono al cliente: {e}")
         return {"error": "Error al vincular el teléfono al cliente."}

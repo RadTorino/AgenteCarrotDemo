@@ -183,6 +183,10 @@
                     "telefono_contacto": {
                         "type": "string",
                         "description": "Teléfono de contacto validado con el usuario."
+                    },
+                    "descripcion_adicional": {
+                        "type": "string",
+                        "description": "Cualquier información adicional relevante para la consulta. Detalle sobre postulación, tipo de producto a proveer, etc."
                     }
                 },
                 "additionalProperties": false,
@@ -201,7 +205,8 @@
                     "id_al_cv",
                     "numero_pedido",
                     "nombre_contacto",
-                    "telefono_contacto"
+                    "telefono_contacto",
+                    "descripcion_adicional"
                 ]
             }
         },

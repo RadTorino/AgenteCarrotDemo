@@ -7,6 +7,7 @@
             "documents": {
                 "path": "Documentos compartidos/BOT Whatsapp",
                 "folders": {
+                    "mother": "Documentos compartidos/BOT Whatsapp",
                     "staging": "Documentos compartidos/BOT Whatsapp/Staging",
                     "potencial_empleado": "Documentos compartidos/BOT Whatsapp/Curriculums",
                     "facturacion": "Documentos compartidos/BOT Whatsapp/Facturas",

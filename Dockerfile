@@ -29,4 +29,4 @@ COPY . .
 # Exponer el puerto donde correrá FastAPI
 EXPOSE 8080
 
-CMD ["uvicorn", "main_try:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uvicorn", "whatsapp:app", "--host", "0.0.0.0", "--port", "8080"]

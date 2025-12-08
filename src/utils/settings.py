@@ -4,7 +4,7 @@ from typing import Optional
 class Settings(BaseSettings):
     # Sheet
     SHEET_ID: str
-    
+    EXCEL_NAME:str
     
     # Redis
     REDIS_HOST: str
@@ -41,11 +41,11 @@ class Settings(BaseSettings):
     # Azure
     AZURE_TENANT_ID: str
     AZURE_CLIENT_ID: str
-    AZURE_SECRET_ID: Optional[str] = None
-    AZURE_CLIENT_SECRET: Optional[str] = None
+    AZURE_SECRET_ID: str 
+    AZURE_CLIENT_SECRET: str
     SHAREPOINT_SITE_URL: str
-    CERT_PATH: Optional[str] = None
-    THUMBPRINT: Optional[str] = None
+    CERT_KEY:str
+    THUMBPRINT: str
 
     # Logging
     LOG_LEVEL: str = "INFO"

@@ -1,10 +1,12 @@
+import asyncio
 import json
-import os
+import os, uuid
 from office365.sharepoint.client_context import ClientContext
 from office365.runtime.auth.client_credential import ClientCredential
 from src.utils.settings import settings
 from src.utils.logger import get_logger
 import io
+import pandas as pd
 from urllib.parse import urlparse, unquote
 
 logger = get_logger(__name__)
@@ -22,6 +24,8 @@ class SharePointService:
         return cls._instances[client_name]
 
     def __init__(self, client_name: str):
+        if not hasattr(self, '_db_lock'):
+            self._db_lock = asyncio.Lock()
         if hasattr(self, '_initialized') and self._initialized:
             return
             
@@ -43,7 +47,7 @@ class SharePointService:
             "tenant": settings.AZURE_TENANT_ID,
             "client_id": settings.AZURE_CLIENT_ID,
             "thumbprint": settings.THUMBPRINT,
-            "cert_path": settings.CERT_PATH,
+            "private_key": settings.CERT_KEY,
         }
         
         site_url = self.config.get("site_url")
@@ -191,3 +195,77 @@ class SharePointService:
             # In case of failure, we might want to return None or raise the exception
             # depending on how the caller should handle it.
             return None
+
+    async def read_worksheet_as_df(self, folder_key: str, file_name: str, worksheet_name: str) -> pd.DataFrame:
+        """
+        Reads a specific worksheet from an Excel file in SharePoint and returns it as a pandas DataFrame.
+
+        Args:
+            folder_key: The key for the folder path in the config.
+            file_name: The name of the Excel file.
+            worksheet_name: The name of the worksheet to read.
+
+        Returns:
+            A pandas DataFrame containing the data from the worksheet.
+        """
+        logger.info(f"Reading worksheet '{worksheet_name}' from '{file_name}'...")
+        try:
+            file_content_stream = self.read_file(folder_key=folder_key, file_name=file_name)
+            df = pd.read_excel(file_content_stream, sheet_name=worksheet_name, engine='openpyxl')
+            logger.info(f"Successfully read worksheet '{worksheet_name}'.")
+            return df
+        except Exception as e:
+            logger.error(f"Failed to read worksheet '{worksheet_name}' from '{file_name}': {e}")
+            raise
+
+    async def add_row_to_worksheet(self, folder_key: str, file_name: str, worksheet_name: str, row_data: dict) -> dict:
+        """
+        Adds a new row to a specific worksheet in an Excel file, ensuring thread-safe operation.
+        This method is atomic, preventing race conditions during concurrent writes.
+
+        Args:
+            folder_key: The key for the folder path in the config.
+            file_name: The name of the Excel file.
+            worksheet_name: The name of the worksheet to modify.
+            row_data: A dictionary representing the new row to add.
+
+        Returns:
+            The dictionary of the row that was added, including a generated ID if one was not provided.
+        """
+        if not row_data.get('id'):
+            row_data['id'] = str(uuid.uuid4())
+
+        async with self._db_lock:
+            logger.info(f"Acquired lock to write to '{file_name}'. Adding row to '{worksheet_name}'.")
+            try:
+                # 1. Read the entire Excel file
+                file_content_stream = self.read_file(folder_key=folder_key, file_name=file_name)
+                all_sheets = pd.read_excel(file_content_stream, engine='openpyxl', sheet_name=None)
+
+                if worksheet_name not in all_sheets:
+                    raise ValueError(f"Worksheet '{worksheet_name}' not found in '{file_name}'.")
+
+                # 2. Modify the target worksheet
+                target_df = all_sheets[worksheet_name]
+                new_row_df = pd.DataFrame([row_data])
+                updated_df = pd.concat([target_df, new_row_df], ignore_index=True)
+                all_sheets[worksheet_name] = updated_df
+
+                # 3. Write all sheets back to an in-memory file
+                output_stream = io.BytesIO()
+                with pd.ExcelWriter(output_stream, engine='openpyxl') as writer:
+                    for sheet_name, sheet_df in all_sheets.items():
+                        sheet_df.to_excel(writer, index=False, sheet_name=sheet_name)
+                
+                updated_file_content = output_stream.getvalue()
+
+                # 4. Upload the modified file, overwriting the old one
+                self.upload_file(folder_key, file_name, updated_file_content)
+                
+                logger.info(f"Successfully added row and uploaded updated '{file_name}'.")
+                return row_data
+            except Exception as e:
+                logger.error(f"An error occurred during the locked write operation: {e}")
+                raise
+            finally:
+                logger.info(f"Released lock for '{file_name}'.")
