@@ -3,8 +3,8 @@ import uuid
 from datetime import datetime
 import pytz
 from src.modules.gspread_conexion import leer_google_sheet, crear_pedido_completo, add_phone_to_client
-from utils.config import config
-from utils.settings import settings
+from src.utils.config import config
+from src.utils.settings import settings
 from src.modules.sharepoint_service import SharePointService
 from src.modules.file_mapping_service import FileMappingService
 from src.modules.gmail_connection import send_notification, NotificacionSchema
