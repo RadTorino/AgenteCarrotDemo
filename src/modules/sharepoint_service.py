@@ -5,7 +5,7 @@ from office365.sharepoint.client_context import ClientContext
 from office365.runtime.auth.client_credential import ClientCredential
 from src.utils.settings import settings
 from src.utils.logger import get_logger
-import io
+import io, base64
 import pandas as pd
 from urllib.parse import urlparse, unquote
 
@@ -47,7 +47,7 @@ class SharePointService:
             "tenant": settings.AZURE_TENANT_ID,
             "client_id": settings.AZURE_CLIENT_ID,
             "thumbprint": settings.THUMBPRINT,
-            "private_key": settings.CERT_KEY,
+            "private_key": base64.b64decode(settings.CERT_KEY_BASE64).decode('utf-8'),
         }
         
         site_url = self.config.get("site_url")

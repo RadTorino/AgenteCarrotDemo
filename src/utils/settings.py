@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     AZURE_SECRET_ID: str 
     AZURE_CLIENT_SECRET: str
     SHAREPOINT_SITE_URL: str
-    CERT_KEY:str
+    CERT_KEY_BASE64: str
     THUMBPRINT: str
 
     # Logging
