@@ -8,4 +8,5 @@ config = {
     "products_sheet_id": settings.SHEET_ID,
     "products_worksheet_name": "products",
     "excel_name": settings.EXCEL_NAME,
+    "orders_worksheet_name": "orders",
 }
