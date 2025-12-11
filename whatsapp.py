@@ -45,7 +45,12 @@ async def receive_webhook(request: Request):
     # --- Loop principal ---
     productos = None
     for msg in messages:
-        from_number = "54" + msg["from"][3:]  # --> validar y ajustar.
+        if msg["from"].startswith("549"):
+            from_number = msg["from"].replace("549", "54", 1)
+            logger.info(f"🇦🇷 Número argentino detectado. Normalizado a: {from_number}")
+        else:
+            from_number = msg["from"]
+            logger.info(f"🌐 Número internacional detectado: {from_number}")
         msg_type = msg["type"]
         user_message = None
 
