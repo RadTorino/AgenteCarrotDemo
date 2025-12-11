@@ -89,7 +89,7 @@
     "properties": {
       "user_id": {
         "type": "string",
-        "description": "Identificador único del cliente."
+        "description": "Identificador único del cliente. NO el cuit, el id que obtienes luego de validar o registrar al cliente."
       },
       "phone_number": {
         "type": "string",
